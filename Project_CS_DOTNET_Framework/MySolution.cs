@@ -93,7 +93,7 @@ namespace Project_CS
 
             // 結果の初期化
             string resultStr = "";
-            Search_ClearText search_cleartext;
+            SearchClearText searchClearText;
 
             ComputeHash ch = new ComputeHash();
             ch = null;
@@ -102,7 +102,7 @@ namespace Project_CS
             for (int i = 1; i <= search_ClearText_MaxLength; i++)
             {
                 // 平文検索処理用インスタンスの生成
-                search_cleartext = new Search_ClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0);
+                searchClearText = new SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0);
 
                 // 文字数iでの総当たり平文検索開始時刻を保存
                 DateTime current_startTime = DateTime.Now;
@@ -114,10 +114,10 @@ namespace Project_CS
                 await Task.Run(() =>
                 {
                     // 文字列の検索を開始
-                    resultStr = search_cleartext.Get_ClearText(threadMax);
+                    resultStr = searchClearText.Get_ClearText(threadMax);
                 });
                 */
-                resultStr = search_cleartext.Get_ClearText(threadMax);
+                resultStr = searchClearText.Get_ClearText(threadMax);
 
                 // 総当たり平文検索終了時刻との差を取得
                 TimeSpan ts = DateTime.Now - startTime;
@@ -182,7 +182,7 @@ namespace Project_CS
                 }
             }
             // 平文検索処理用インスタンスを解放する。
-            search_cleartext = null;
+            searchClearText = null;
 
             if (resultStr == null)
             {

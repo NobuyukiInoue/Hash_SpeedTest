@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Project_CS
 {
     /// 元の文字列（平文）候補を生成し、ハッシュ文字列と比較処理を行うクラス
-    public class Search_ClearText
+    public class SearchClearText
     {
         /// 処理済み平文の出力用文字列（デバッグ用）
         private string clearTextList = "";
@@ -41,7 +41,7 @@ namespace Project_CS
         /// 選択したアルゴリズムのインデックス番号
         private int Algorithm_Index;
 
-        public Search_ClearText(int alg_index, string targetStr, int strLen, int threadMax, int mode)
+        public SearchClearText(int alg_index, string targetStr, int strLen, int threadMax, int mode)
         {
             srcStr = new byte[threadMax][];
             chr = new byte[threadMax][];

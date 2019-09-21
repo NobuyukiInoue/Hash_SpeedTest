@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class Main {
-    static void Main(String[] args) {
+    public static void main(String[] args) {
         if (args.length < 2) {
             print_msg_and_exit();
         }
@@ -19,7 +19,7 @@ public class Main {
         // スレッド数指定のチェック
         ExInteger ei = new ExInteger();
  
-        Out<Integer> thread_count_temp;
+        Out<Integer> thread_count_temp = new Out<Integer>();
         int thread_count;
         if (ei.TryParse(args[1], thread_count_temp) == false)
         {
@@ -40,8 +40,8 @@ public class Main {
         }
 
         // 検索する最大文字列長の指定チェック
-        Out<Integer> search_max_length_temp;
-        int search_max_length;
+        Out<Integer> search_max_length_temp = new Out<Integer>();
+        int search_max_length;  
 
         if (args.length >= 3) {
             if (ei.TryParse(args[2], search_max_length_temp) == false) {
@@ -60,7 +60,6 @@ public class Main {
 
         MySolution sl = new MySolution();
         sl.Main(open_FileName, thread_count, search_max_length, 0);
-        sl = null;
     }
 
     private static void print_msg_and_exit() {

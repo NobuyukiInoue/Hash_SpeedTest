@@ -1,7 +1,7 @@
 JAVAC =javac
 JAVAC_FLAGS =
 
-all:	Out.class ExInteger.class TimeSpan.class ComputeHash.class Search_ClearText.class MySolution.class Main.class
+all:	Out.class ExInteger.class TimeFormatter.class ComputeHash.class SearchClearText.class MySolution.class Main.class
 
 Out.class:	Out.java
 	$(JAVAC) $(JAVAC_FLAGS) $<
@@ -9,13 +9,13 @@ Out.class:	Out.java
 ExInteger.class:	ExInteger.java
 	$(JAVAC) $(JAVAC_FLAGS) $<
 
-TimeSpan.class:	TimeSpan.java
+TimeFormatter.class:	TimeFormatter.java
 	$(JAVAC) $(JAVAC_FLAGS) $<
 
 ComputeHash.class:	ComputeHash.java
 	$(JAVAC) $(JAVAC_FLAGS) $<
 
-Search_ClearText.class:	Search_ClearText.java
+SearchClearText.class:	SearchClearText.java
 	$(JAVAC) $(JAVAC_FLAGS) $<
 
 MySolution.class:	MySolution.java

@@ -6,22 +6,20 @@ import java.io.IOException;
 import java.util.*;
 
 public class MySolution {
-    private Date startTime;
+    private long startTime;
     private int ClearTextMaxLength;
 
     public void Main(String open_FileName, int thread_count, int search_max_length, int search_mode) {
         // ハッシュ文字列が保存されたファイルの読み込み
-        StringBuilder builder = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new FileReader(open_FileName));
-        String string = reader.readLine();
-        while (string != null){
-            builder.append(string + System.getProperty("line.separator"));
-            string = reader.readLine();
-        }
-        String read_Text = builder.toString();
+        String read_Text = read_file(open_FileName);
 
         // コメント部の削除
-        read_Text = read_Text.replaceAll("#.*\n", "").replaceAll("//.*\n", "");
+        /*
+        read_Text = read_Text.replaceAll("#.*\\n", "");
+        read_Text = read_Text.replaceAll("//.*\\n", "");
+        */
+        read_Text = read_Text.replaceAll("#.*", "");
+        read_Text = read_Text.replaceAll("//.*", "");
 
         // ハッシュアルゴリズムとハッシュ文字列の分離
         String[] flds = read_Text.trim().split(":");
@@ -48,10 +46,35 @@ public class MySolution {
     }
 
     //-----------------------------------------------------------------------------//
+    // 指定ファイルの読み込み
+    //-----------------------------------------------------------------------------//
+    private String read_file(String open_FileName) {
+        StringBuilder builder = new StringBuilder();
+
+        try {
+            File fp = new File(open_FileName);
+            BufferedReader reader = new BufferedReader(new FileReader(fp));
+            String string = reader.readLine();
+            while (string != null){
+                builder.append(string + System.getProperty("line.separator"));
+                string = reader.readLine();
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println(e);
+            System.exit(-1);
+        } catch (IOException e) {
+            System.out.println(e);
+            System.exit(-1);
+        }
+
+        return builder.toString();
+    }
+
+    //-----------------------------------------------------------------------------//
     // 元の文字列を検索
     //-----------------------------------------------------------------------------//
-    // private async void search(String target_hashed_text, String algorithm, int threadMax, int search_ClearText_MaxLength)
-    private void search(String target_hashed_text, String algorithm, int threadMax, int search_ClearText_MaxLength, int search_mode) {
+    // private async void search(String target_hashed_text, String algorithm, int threadMax, int searchClearText_MaxLength)
+    private void search(String target_hashed_text, String algorithm, int threadMax, int searchClearText_MaxLength, int search_mode) {
         // 使用するスレッド数の指定チェック
         if ((threadMax != 1)
         && (threadMax != 2)
@@ -89,22 +112,26 @@ public class MySolution {
         }
 
         // 現在の時刻を取得
-        startTime = new Date();
+        startTime = System.currentTimeMillis();
 
         // 結果の初期化
         String resultStr = "";
-        Search_ClearText search_cleartext;
+        SearchClearText searchClearText;
+//      SearchClearText_debug searchClearText;
 
         ComputeHash ch = new ComputeHash();
+        TimeFormatter timeformatter = new TimeFormatter();
         ch = null;
 
         // １文字から指定した文字列長まで検索する。
-        for (int i = 1; i <= search_ClearText_MaxLength; i++) {
+        for (int i = 1; i <= searchClearText_MaxLength; i++) {
+
             // 平文検索処理用インスタンスの生成
-            search_cleartext = new Search_ClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0);
+            searchClearText = new SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0);
+//          searchClearText = new SearchClearText_debug(Algorithm_Index, target_hashed_text, i, threadMax, 0);
 
             // 文字数iでの総当たり平文検索開始時刻を保存
-            Date current_startTime = new Date();
+            long current_startTime = System.currentTimeMillis();
 
             //---------------------------------------------------------------------//
             // 文字数iでの総当たり平文検索開始
@@ -113,42 +140,33 @@ public class MySolution {
             await Task.Run(() =>
             {
                 // 文字列の検索を開始
-                resultStr = search_cleartext.Get_ClearText(threadMax);
+                resultStr = searchClearText.Get_ClearText(threadMax);
             });
             */
-            resultStr = search_cleartext.Get_ClearText(threadMax);
+            resultStr = searchClearText.Get_ClearText(threadMax);
 
             // 総当たり平文検索終了時刻との差を取得
-        	TimeSpan ts = (new Date()) - startTime;
+            long ts = System.currentTimeMillis() - startTime;
 
             //---------------------------------------------------------------------//
             // 文字数iでの総当たり平文検索終了
             //---------------------------------------------------------------------//
             if (resultStr != null) {
-                /*
                 System.out.println("元の文字列が見つかりました！\r\n"
                                 + "\r\n"
                                 + "結果 = " + resultStr + "\r\n"
                                 + "\r\n"
-                                + "解析時間 = " +  ts.toString(@"hh\:mm\:ss\.fff") + " 秒");
-                */
-                System.out.println("元の文字列が見つかりました！\r\n"
-                                + "\r\n"
-                                + "結果 = " + resultStr + "\r\n"
-                                + "\r\n"
-                                + "解析時間 = " +  TimeSpan.toString(ts) + " 秒");
+                                + "解析時間 = " + timeformatter.format(ts) + " 秒");
                 break;
             } else {
-                System.out.println(TimeSpan.toString(ts) + " ... " + Integer.toString(i) + "文字の組み合わせ照合終了");
+                System.out.println(timeformatter.format(ts) + " ... " + Integer.toString(i) + "文字の組み合わせ照合終了");
 
                 /*
                 if (i == 2)
                 {
                     // 2桁目まで終わったら、2桁の処理時間を基に予想終了時刻を算出する。
-                    TimeSpan oneLengthTime = Date.Now - current_startTime;
-                    TimeSpan resultTime;
-
-                    System.out.println("OneLength_T = " + oneLengthTime.toString(@"hh\:mm\:ss\.fff") + " 秒");
+                    long oneLengthTime = System.currentTimeMillis() - current_startTime;
+                    long resultTime;
 
                     if (search_mode == 0)
                     {
@@ -163,29 +181,14 @@ public class MySolution {
                         resultTime = get_finTime_for_all(oneLengthTime);
                     }
 
-                    System.out.println("予想処理時間(2文字までの処理時間で算出) : " + resultTime.toString(@"hh\:mm\:ss\.fff") + " 秒");
-
-                    if (resultTime == new TimeSpan(0, 0, 0))
-                    {
-                        //System.out.println("予想時間上限値超過");
-                    }
-                    else
-                    {
-                        if (resultTime.Days == 0)
-                        {
-                            System.out.println("予想処理時間 : " + resultTime.toString(@"hh\:mm\:ss") + " 秒");
-                        }
-                        else
-                        {
-                            System.out.println("予想処理時間 : " + resultTime.Days + " days " + resultTime.toString(@"hh\:mm\:ss") + " 秒");
-                        }
-                    }
+                    //System.out.println("予想処理時間(2文字までの処理時間で算出) : " + timefomatter.format(resultTime));
+                    System.out.println("guess : " + timeformatter.format(resultTime));
                 }
-               */
+                */
             }
         }
         // 平文検索処理用インスタンスを解放する。
-        search_cleartext = null;
+        searchClearText = null;
 
         if (resultStr == null) {
             // 見つからなかった場合
@@ -196,30 +199,31 @@ public class MySolution {
     //-----------------------------------------------------------------------------//
     /// 終了予測時間を算出する(英数のみ ... A-Z, a-z, 0-9)
     //-----------------------------------------------------------------------------//
-    private TimeSpan get_finTime_for_alfaNum(TimeSpan dt) {
-        TimeSpan[] resultArray = new TimeSpan[ClearTextMaxLength];
+    private long get_finTime_for_alfaNum(long dt) {
+        long[] resultArray = new long[ClearTextMaxLength];
+
+        for (int len = 2; len < resultArray.length; len++) {
+            resultArray[len] = 0;
+        }
 
         // 各桁の予想処理時間の初期化
         resultArray[1] = dt;
-
-        for (int len = 2; len < ClearTextMaxLength; len++) {
-            resultArray[len] = new TimeSpan(0, 0, 0);
-        }
 
         // 各桁の予想処理時間の算出
         for (int len = 2; len < ClearTextMaxLength; len++) {
             for (int i = 0; i < ('9' - '0') + 1 + ('Z' - 'A') + 1 + ('z' - 'a') + 1; i++) {
                 try {
                     resultArray[len] += resultArray[len - 1];
-                } catch(Exception e) {
-                    return (new TimeSpan(0, 0, 0));
+                } catch (Exception e) {
+                    return 0;
                 } finally {
+
                 }
             }
         }
 
         // 各桁の処理時間を合算する
-        TimeSpan resultTime = new TimeSpan(0, 0, 0);
+        long resultTime = 0;
 
         for (int len = 2; len < ClearTextMaxLength; len++) {
             resultTime += resultArray[len];
@@ -231,15 +235,15 @@ public class MySolution {
     //-----------------------------------------------------------------------------//
     /// 終了予測時間を算出する(英数 + 記号 ... 0x20 - 0x7f)
     //-----------------------------------------------------------------------------//
-    private TimeSpan get_finTime_for_all(TimeSpan dt)
+    private long get_finTime_for_all(long dt)
     {
-        TimeSpan[] resultArray = new TimeSpan[ClearTextMaxLength];
+        long[] resultArray = new long[ClearTextMaxLength];
 
         // 各桁の予想処理時間の初期化
         resultArray[1] = dt;
 
         for (int len = 2; len < ClearTextMaxLength; len++) {
-            resultArray[len] = new TimeSpan(0, 0, 0);
+            resultArray[len] = 0;
         }
 
         // 各桁の予想処理時間の算出
@@ -247,14 +251,14 @@ public class MySolution {
             for (int i = 0x20; i < 0x7f; i++) {
                 try {
                     resultArray[len] += resultArray[len - 1];
-                } catch(Exception e) {
-                    return new TimeSpan(0, 0, 0);
+                } catch (Exception e) {
+                    return 0;
                 }
             }
         }
 
         // 各桁の処理時間を合算する
-        TimeSpan resultTime = new TimeSpan(0, 0, 0);
+        long resultTime = 0;
 
         for (int len = 2; len < ClearTextMaxLength; len++) {
             resultTime += resultArray[len];

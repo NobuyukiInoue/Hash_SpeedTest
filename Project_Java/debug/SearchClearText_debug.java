@@ -1,9 +1,11 @@
 import java.util.*;
+import java.io.*;
 
 /// 元の文字列（平文）候補を生成し、ハッシュ文字列と比較処理を行うクラス
-public class Search_ClearText {
+public class SearchClearText_debug {
     /// 処理済み平文の出力用文字列（デバッグ用）
     private String clearTextList = "";
+    private boolean output_clearTextList = true;
 
     /// ハッシュ処理用クラスのインスタンス
     private ComputeHash computeHash = new ComputeHash();
@@ -33,7 +35,7 @@ public class Search_ClearText {
     /// 選択したアルゴリズムのインデックス番号
     private int Algorithm_Index;
 
-    public Search_ClearText(int alg_index, String targetStr, int strLen, int threadMax, int mode) {
+    public SearchClearText_debug(int alg_index, String targetStr, int strLen, int threadMax, int mode) {
         srcStr = new byte[threadMax][];
         chr = new byte[threadMax][];
 
@@ -64,7 +66,7 @@ public class Search_ClearText {
             break;
         default:
             System.out.println("threadMax = " + Integer.toString(threadMax) +   ", threadMax is Invalid...");
-            Environment.Exit(0);
+            System.exit(-1);
             break;
         }
 
@@ -244,7 +246,7 @@ public class Search_ClearText {
         }
 
         for (int i = 0; i < targetChars.length; i++) {
-            System.out.println("targetChars[" + i + "] = " + targetChars[i].toString("X"));
+            System.out.println("targetChars[" + i + "] = " + String.format("%x", targetChars[i]));
         }
     }
 
@@ -255,8 +257,8 @@ public class Search_ClearText {
         //-------------------------------------------------------------------------//
         // 平文が""かどうかを判定する。
         //-------------------------------------------------------------------------//
-        if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, Encoding.ASCII.GetBytes(""))) {
-            return ("");
+        if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, "".getBytes())) {
+            return "";
         }
 
         //-------------------------------------------------------------------------//
@@ -267,31 +269,34 @@ public class Search_ClearText {
         //---------------------------------------------------------------------//
         // スレッド生成
         //---------------------------------------------------------------------//
-        /*
-        Task task = Task.Factory.StartNew(() =>
-        {
-            Parallel.For(0, threadMax, threadNum =>
-            {
-                    // 指定したアルゴリズムにてハッシュ値を生成する。
-                    if (Get_NextClearText_Group_All(threadNum, srcStr, chr, 0)) {
+
+        Collection<Integer> elems = new LinkedList<Integer>();
+        for (int i = 0; i < threadMax; ++i) {
+            elems.add(i);
+        }
+
+        Parallel.For(elems, 
+        // The operation to perform with each item
+        new Parallel.Operation<Integer>() {
+
+            public void perform(Integer threadNum) {
+                // 指定したアルゴリズムにてハッシュ値を生成する。
+                if (Get_NextClearText_Group_All(threadNum, srcStr, chr, 0)) {
                     //-----------------------------------------------------------//
                     // 同じハッシュ値が生成できる元の文字列が見つかった場合
                     //-----------------------------------------------------------//
                     String ClearText = "";
                     for (int i = 0; i < srcStr[threadNum].length; i++) {
-                        ClearText += Convert.ToChar(srcStr[threadNum][i]);
+                        ClearText += (char)srcStr[threadNum][i];
                     }
 
                     resultStr[threadNum] = ClearText;
                 } else {
                     resultStr[threadNum] = "";
                 }
-            });
-        });
+            };
 
-        // メインスレッド仮待機
-        task.Wait(1);
-        */
+        });
 
         //-------------------------------------------------------------------------//
         // すべてのスレッドが結果を返すまで待機する。
@@ -299,16 +304,16 @@ public class Search_ClearText {
         while (true) {
             int resultCount = 0;
 
-            System.Threading.Thread.Sleep(500);
+            try {
+                Thread.sleep(500);
+            } catch (Exception e) {
+
+            }
 
             for (int i = 0; i < threadMax; i++) {
                 if (resultStr[i] != null) {
                     if (resultStr[i] != "") {
-                        /*
-                        #if output_clearTextList
-                            save_clearTextList();
-                        #endif
-                        */
+                        if (output_clearTextList) save_clearTextList();
 
                         // いずれかのスレッドが文字列を返してきた場合（見つかった場合）
                         return resultStr[i];
@@ -316,11 +321,7 @@ public class Search_ClearText {
                         resultCount++;
 
                         if (resultCount >= threadMax) {
-                            /*
-                            #if output_clearTextList
-                                save_clearTextList();
-                            #endif
-                            */
+                            if (output_clearTextList) save_clearTextList();
 
                             // すべて""だった場合（見つからなかった場合）
                             return null;
@@ -334,12 +335,23 @@ public class Search_ClearText {
     //-------------------------------------------------------------------//
     // 検索した平文リストのファイルへの保存
     //-------------------------------------------------------------------//
-    /*
     private void save_clearTextList() {
-        StreamWriter sw = new StreamWriter("ClearTextList_" + srcStr[0].length + ".txt" , true);
-        sw.Write(clearTextList);
+        try {
+            // FileWriterクラスのオブジェクトを生成する
+            FileWriter file = new FileWriter("ClearTextList_" + srcStr[0].length + ".txt");
+            // PrintWriterクラスのオブジェクトを生成する
+            PrintWriter pw = new PrintWriter(new BufferedWriter(file));
+            
+            //ファイルに書き込む
+            pw.println(clearTextList);
+            
+            //ファイルを閉じる
+            pw.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-    */
     
     //-------------------------------------------------------------------//
     // 当該階層の平文候補を生成しハッシュ値と比較する。
@@ -360,11 +372,8 @@ public class Search_ClearText {
             targetArray[threadNum][i] = chr[threadNum][i];
 
             // デバッグ用出力
-            /*
-            #if output_clearTextList
-                clearTextList += "\"" + System.Text.Encoding.ASCII.GetString(targetArray[threadNum]) + "\"\r\n";
-            #endif
-            */
+            if (output_clearTextList)
+                clearTextList += "\"" + (new String(targetArray[threadNum])) + "\"\r\n";
 
             // 指定したアルゴリズムにてハッシュ値を生成する。
             if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, targetArray[threadNum])) {
@@ -406,11 +415,8 @@ public class Search_ClearText {
             targetArray[threadNum][i] = (byte)chr[threadNum][i];
 
             // デバッグ用出力
-            /*
-            #if output_clearTextList
-                clearTextList += "\"" + System.Text.Encoding.ASCII.GetString(targetArray[threadNum]) + "\"\r\n";
-            #endif
-            */
+            if (output_clearTextList)
+                clearTextList += "\"" + (new String(targetArray[threadNum])) + "\"\r\n";
 
             // 指定したアルゴリズムにてハッシュ値を生成する。
             if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, targetArray[threadNum])) {
@@ -436,43 +442,43 @@ public class Search_ClearText {
     public void display_ClearText() {
         String[] clearText = new String[srcStr.length];
 
-        for (int thread = 0; thread < srcStr.Length; thread++)
+        for (int thread = 0; thread < srcStr.length; thread++)
         {
             // スレッドごとに途中経過文字列を取得
 
             clearText[thread] = "";
-            for (int i = 0; i < srcStr[thread].Length; i++)
+            for (int i = 0; i < srcStr[thread].length; i++)
             {
-                clearText[thread] += Convert.ToChar(srcStr[thread][i]);
+                clearText[thread] += (char)srcStr[thread][i];
             }
 
-            if (clearText[thread].IndexOf("\0") >= 0)
+            if (clearText[thread].indexOf("\0") >= 0)
             {
                 // 出力先テキストボックスに出力
-                System.System.out.println("スレッド" + thread + ": (起動待ち)");
+                System.out.println("スレッド" + thread + ": (起動待ち)");
             }
             else if (resultStr[thread] == "")
             {
                 // 出力先テキストボックスに出力
-                System.System.out.println("スレッド" + thread + ": (処理終了)");
+                System.out.println("スレッド" + thread + ": (処理終了)");
             }
             else
             {
-                int threadCount = srcStr.Length;
+                int threadCount = srcStr.length;
                 //double progress = ((double)(srcStr[thread][0] - targetChars[chrStart[selectIndex][thread]]) / (double)(chrEnd[selectIndex][thread] - chrStart[selectIndex][thread])) * 100;
                 double progress = ((double)(get_index_targetChars(srcStr[thread][0]) - get_index_targetChars(targetChars[chrStart[selectIndex][thread]])) / (double)(chrEnd[selectIndex][thread] - chrStart[selectIndex][thread])) * 100;
 
                 // 出力先テキストボックスに出力
-                System.System.out.print("スレッド" + thread + "  (" + String.format("%.0f", progress) + "% 終了)  :  " + clearText[thread]);
+                System.out.print("スレッド" + thread + "  (" + String.format("%.0f", progress) + "% 終了)  :  " + clearText[thread]);
             }
 
             if (thread % 2 == 0)
             {
-                System.System.out.print("\t");
+                System.out.print("\t");
             }
             else
             {
-                System.System.out.println();
+                System.out.println();
             }
         }
     }
@@ -485,10 +491,10 @@ public class Search_ClearText {
 
         for (i = 0; i < targetChars.length; i++) {
             if (val == targetChars[i]) {
-                return (i);
+                return i;
             }
         }
 
-        return (0);
+        return 0;
     }
 }
