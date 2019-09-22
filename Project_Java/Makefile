@@ -1,5 +1,5 @@
 JAVAC =javac
-JAVAC_FLAGS =
+JAVAC_FLAGS =-encoding SJIS
 
 all:	Out.class ExInteger.class TimeFormatter.class ComputeHash.class SearchClearText.class MySolution.class Main.class
 

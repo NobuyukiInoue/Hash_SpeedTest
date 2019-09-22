@@ -15,10 +15,7 @@ import java.lang.*;
 
 public class Parallel {
     private static final int NUM_CORES = Runtime.getRuntime().availableProcessors();
-
     private static final ExecutorService forPool = Executors.newFixedThreadPool(NUM_CORES * 2, new NamedThreadFactory("Parallel.For"));
-//    private static final ExecutorService forPool = Executors.newFixedThreadPool(NUM_CORES * 2, new ThreadFactory("Parallel.For"));
-
     public static <T> void For(final Iterable<T> elements, final Operation<T> operation) {
         try {
             // invokeAll blocks for us until all submitted tasks in the call complete
