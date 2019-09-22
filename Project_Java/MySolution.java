@@ -9,7 +9,7 @@ public class MySolution {
     private long startTime;
     private int ClearTextMaxLength;
 
-    public void Main(String open_FileName, int thread_count, int search_max_length, int search_mode) {
+    public void Main(String open_FileName, int thread_count, int search_max_length, int search_mode, boolean use_multiThread, boolean use_debug) {
         // ハッシュ文字列が保存されたファイルの読み込み
         String read_Text = read_file(open_FileName);
 
@@ -29,17 +29,21 @@ public class MySolution {
         // 検索する平文の最大文字列長
         ClearTextMaxLength = search_max_length;
 
-        System.out.println("===============================================================");
+        System.out.println("=====================================================================================");
         System.out.println("algorithm          : " + algorithm);
         System.out.println("target Hashed Text : " + target_hashed_text);
-        System.out.println("thread count       : " + Integer.toString(thread_count));
+        if (use_multiThread) {
+            System.out.println("thread count       : " + Integer.toString(thread_count));
+        } else {
+            System.out.println("multiThread        : " + Boolean.toString(use_multiThread));
+        }
         System.out.println("search max length  : " + Integer.toString(search_max_length));
-        System.out.println("===============================================================");
+        System.out.println("=====================================================================================");
 
         long start = System.currentTimeMillis();
 
         // 総当たり検索実行
-        search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode);
+        search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode, use_multiThread, use_debug);
 
         long end = System.currentTimeMillis();
         System.out.println("Total Execute time ... " + (end - start)  + "ms\n");
@@ -74,7 +78,7 @@ public class MySolution {
     // 元の文字列を検索
     //-----------------------------------------------------------------------------//
     // private async void search(String target_hashed_text, String algorithm, int threadMax, int searchClearText_MaxLength)
-    private void search(String target_hashed_text, String algorithm, int threadMax, int searchClearText_MaxLength, int search_mode) {
+    private void search(String target_hashed_text, String algorithm, int threadMax, int searchClearText_MaxLength, int search_mode, boolean use_multiThread, boolean use_debug) {
         // 使用するスレッド数の指定チェック
         if ((threadMax != 1)
         && (threadMax != 2)
@@ -124,11 +128,10 @@ public class MySolution {
         ch = null;
 
         // １文字から指定した文字列長まで検索する。
-        for (int i = 1; i <= searchClearText_MaxLength; i++) {
+        for (int target_strLen = 1; target_strLen <= searchClearText_MaxLength; target_strLen++) {
 
             // 平文検索処理用インスタンスの生成
-            searchClearText = new SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0);
-//          searchClearText = new SearchClearText_debug(Algorithm_Index, target_hashed_text, i, threadMax, 0);
+            searchClearText = new SearchClearText(Algorithm_Index, target_hashed_text, target_strLen, threadMax, 0, use_multiThread, use_debug);
 
             // 文字数iでの総当たり平文検索開始時刻を保存
             long current_startTime = System.currentTimeMillis();
@@ -136,13 +139,6 @@ public class MySolution {
             //---------------------------------------------------------------------//
             // 文字数iでの総当たり平文検索開始
             //---------------------------------------------------------------------//
-            /*
-            await Task.Run(() =>
-            {
-                // 文字列の検索を開始
-                resultStr = searchClearText.Get_ClearText(threadMax);
-            });
-            */
             resultStr = searchClearText.Get_ClearText(threadMax);
 
             // 総当たり平文検索終了時刻との差を取得
@@ -159,10 +155,10 @@ public class MySolution {
                                 + "解析時間 = " + timeformatter.format(ts) + " 秒");
                 break;
             } else {
-                System.out.println(timeformatter.format(ts) + " ... " + Integer.toString(i) + "文字の組み合わせ照合終了");
+                System.out.println(timeformatter.format(ts) + " ... " + Integer.toString(target_strLen) + "文字の組み合わせ照合終了");
 
                 /*
-                if (i == 2)
+                if (target_strLen == 2)
                 {
                     // 2桁目まで終わったら、2桁の処理時間を基に予想終了時刻を算出する。
                     long oneLengthTime = System.currentTimeMillis() - current_startTime;

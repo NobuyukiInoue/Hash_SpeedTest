@@ -9,15 +9,13 @@ import ComputeHash
 
 class SearchClearText:
 
-    def __init__(self, alg_index, targetStr, strLen, threadMax, mode):
+    def __init__(self, alg_index, targetStr, strLen, threadMax, mode, use_multiThread, use_debug):
 
         # デバッグ用出力の指定
-        #self.output_clearTextList = True
-        self.output_clearTextList = False
+        self.output_clearTextList = use_debug
 
         # マルチスレッド処理の可否
-        self.useMultiThread = True
-        #self.useMultiThread = True
+        self.useMultiThread = use_multiThread
 
         self.clearTextList = ""
         self.srcStr = [0]*threadMax
@@ -206,6 +204,7 @@ class SearchClearText:
         for i in range(0, len(self.targetChars)):
             print("targetChars[{0}] = {1:x}".format(i, self.targetChars[i]))
 
+
     #-------------------------------------------------------------------#
     # 元の文字列総当たり検索
     #-------------------------------------------------------------------#
@@ -236,11 +235,10 @@ class SearchClearText:
                 self.thread_func(threadNum)
 
         #-------------------------------------------------------------------------#
-        # すべてのスレッドが結果を返すまで待機する。
+        # 指定文字数での結果報告
         #-------------------------------------------------------------------------#
         while True:
             resultCount = 0
-            time.sleep(0.5)
 
             for i in range(0, threadMax):
                 if self.resultStr[i] != None:
@@ -262,6 +260,7 @@ class SearchClearText:
                             # すべて""だった場合（見つからなかった場合）
                             return None
 
+
     #-------------------------------------------------------------------#
     # マルチスレッド処理部
     #-------------------------------------------------------------------#
@@ -276,12 +275,14 @@ class SearchClearText:
         else:
             self.resultStr[threadNum] = ""
 
+
     #-------------------------------------------------------------------#
     # 検索した平文リストのファイルへの保存
     #-------------------------------------------------------------------#
     def save_clearTextList(self):
         with open("ClearTextList_" + str(len(self.srcStr[0])) + ".txt", mode='w') as f:
             f.writelines(self.clearTextList)
+
 
     #-------------------------------------------------------------------#
     # 当該階層の平文候補を生成しハッシュ値と比較する。
@@ -315,6 +316,7 @@ class SearchClearText:
                 return True
 
         return False
+
 
     #-------------------------------------------------------------------#
     # 当該階層の平文候補を生成しハッシュ値と比較する。
@@ -352,6 +354,7 @@ class SearchClearText:
 
         return False
 
+
     #-------------------------------------------------------------------#
     # 生成した元の文字列候補を表示する。
     #-------------------------------------------------------------------#
@@ -382,6 +385,7 @@ class SearchClearText:
             else:
                 print()
 
+
     #-------------------------------------------------------------------#
     # 指定した文字(byte型)が、targetChars[]の何番目かを調べる
     #-------------------------------------------------------------------#
@@ -401,6 +405,7 @@ class SearchClearText:
             if arr[i] != 0:
                 resultStr += arr[i].decode('ascii')
         return resultStr
+
 
     #-------------------------------------------------------------------#
     # byte[]をbyte列に変換する

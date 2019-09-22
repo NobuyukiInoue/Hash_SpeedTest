@@ -5,6 +5,11 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
+        /*
+        for (int i = 0; i < args.length; i++) {
+            System.out.println("args[" + Integer.toString(i) + "] = " + args[i]);
+        }
+        */
         if (args.length < 2) {
             print_msg_and_exit();
         }
@@ -12,7 +17,7 @@ public class Main {
         // ファイル指定のチェック
         if ((new File(args[0])).exists() == false) {
             System.out.println(args[0] + " not found.");
-            return;
+            print_msg_and_exit();
         }
         String open_FileName = args[0];
 
@@ -24,7 +29,7 @@ public class Main {
         if (ei.TryParse(args[1], thread_count_temp) == false)
         {
             System.out.println(args[1] + " in not numeric.");
-            return;
+            print_msg_and_exit();
         }
 
     	thread_count = thread_count_temp.get();
@@ -36,34 +41,65 @@ public class Main {
         && (thread_count != 8)
         && (thread_count != 16)) {
             System.out.println(args[1] + " Please select thread_count from 1, 2, 4, 8, 16");
-            return;
+            print_msg_and_exit();
+        }
+
+        // マルチスレッド処理／直列処理の選択
+        boolean use_multiThread = true;
+        if (args.length > 2) {
+            String workStr = args[2].toUpperCase();
+            if (workStr.equals("TRUE")) {
+                use_multiThread = true;
+            } else if (workStr.equals("FALSE")) {
+                use_multiThread = false;
+            } else {
+                System.out.println("\"" + args[2] + "\" is Invalid.");
+                System.out.println("use_mutiThread ... [TRUE | FALSE]");
+                print_msg_and_exit();
+            }
         }
 
         // 検索する最大文字列長の指定チェック
         Out<Integer> search_max_length_temp = new Out<Integer>();
         int search_max_length;  
 
-        if (args.length >= 3) {
-            if (ei.TryParse(args[2], search_max_length_temp) == false) {
-                System.out.println(args[2] + " in not numeric.");
-                return;
+        if (args.length > 3) {
+            if (ei.TryParse(args[3], search_max_length_temp) == false) {
+                System.out.println(args[3] + " in not numeric.");
+                print_msg_and_exit();
             }
 
             search_max_length = search_max_length_temp.get();
             if (search_max_length < 1 || search_max_length > 255) {
-                System.out.println(args[2] + " is not 0 - 255");
-                return;
+                System.out.println(args[3] + " is not 0 - 255");
+                print_msg_and_exit();
             }
         } else {
             search_max_length = 256;
         }
 
+        // デバッグ出力の有効／無効
+        boolean use_debug = false;
+        if (args.length > 4) {
+            String workStr = args[4].toUpperCase();
+            if (workStr.equals("TRUE")) {
+                use_debug = true;
+            } else if (workStr.equals("FALSE")) {
+                use_debug = false;
+            } else {
+                System.out.println("\"" + args[4] + "\" is Invalid.");
+                System.out.println("use_debug ... [TRUE | FALSE]");
+                print_msg_and_exit();
+            }
+        }
+
         MySolution sl = new MySolution();
-        sl.Main(open_FileName, thread_count, search_max_length, 0);
+        sl.Main(open_FileName, thread_count, search_max_length, 0, use_multiThread, use_debug);
     }
 
     private static void print_msg_and_exit() {
-        System.out.println("Usage: dotnet run <testdata.txt> <thread_count> <search_max_length>");
+        final String className = new Object(){}.getClass().getEnclosingClass().getName();
+        System.out.println("\nUsage: java " + className + " <testdata.txt> <thread_count> [use_multiThread] [search_max_length] [debug]");
         System.exit(1);
     }
 }

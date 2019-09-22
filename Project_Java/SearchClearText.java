@@ -5,7 +5,10 @@ import java.io.*;
 public class SearchClearText {
     /// 処理済み平文の出力用文字列（デバッグ用）
     private String clearTextList = "";
-//  private boolean output_clearTextList = true;
+    private boolean output_clearTextList;
+
+    /// マルチスレッド処理の可否
+    private boolean userMultiThread;
 
     /// ハッシュ処理用クラスのインスタンス
     private ComputeHash computeHash = new ComputeHash();
@@ -35,7 +38,9 @@ public class SearchClearText {
     /// 選択したアルゴリズムのインデックス番号
     private int Algorithm_Index;
 
-    public SearchClearText(int alg_index, String targetStr, int strLen, int threadMax, int mode) {
+    public SearchClearText(int alg_index, String targetStr, int strLen, int threadMax, int mode, boolean use_multiThread, boolean use_debug) {
+        output_clearTextList = use_debug;
+        userMultiThread = use_multiThread;
         srcStr = new byte[threadMax][];
         chr = new byte[threadMax][];
 
@@ -264,22 +269,41 @@ public class SearchClearText {
         //-------------------------------------------------------------------------//
         // 平文が１文字以上の文字列の場合
         //-------------------------------------------------------------------------//
-        String[] resultStr = new String[threadMax];
+        resultStr = new String[threadMax];
 
-        //---------------------------------------------------------------------//
-        // スレッド生成
-        //---------------------------------------------------------------------//
+        if (userMultiThread) {
+            //---------------------------------------------------------------------//
+            // マルチスレッド処理の場合
+            //---------------------------------------------------------------------//
+            Collection<Integer> elems = new LinkedList<Integer>();
+            for (int i = 0; i < threadMax; ++i) {
+                elems.add(i);
+            }
 
-        Collection<Integer> elems = new LinkedList<Integer>();
-        for (int i = 0; i < threadMax; ++i) {
-            elems.add(i);
-        }
-
-        Parallel.For(elems, 
-        // The operation to perform with each item
-        new Parallel.Operation<Integer>() {
-
-            public void perform(Integer threadNum) {
+            Parallel.For(elems, 
+            // The operation to perform with each item
+            new Parallel.Operation<Integer>() {
+                public void perform(Integer threadNum) {
+                    // 指定したアルゴリズムにてハッシュ値を生成する。
+                    if (Get_NextClearText_Group_All(threadNum, srcStr, chr, 0)) {
+                        //-----------------------------------------------------------//
+                        // 同じハッシュ値が生成できる元の文字列が見つかった場合
+                        //-----------------------------------------------------------//
+                        String ClearText = "";
+                        for (int i = 0; i < srcStr[threadNum].length; i++) {
+                            ClearText += (char)srcStr[threadNum][i];
+                        }
+                        resultStr[threadNum] = ClearText;
+                    } else {
+                        resultStr[threadNum] = "";
+                    }
+                };
+            });
+        } else {
+            //---------------------------------------------------------------------//
+            // 直列実行の場合
+            //---------------------------------------------------------------------//
+            for (int threadNum = 0; threadNum < threadMax; threadNum++) {  
                 // 指定したアルゴリズムにてハッシュ値を生成する。
                 if (Get_NextClearText_Group_All(threadNum, srcStr, chr, 0)) {
                     //-----------------------------------------------------------//
@@ -289,32 +313,25 @@ public class SearchClearText {
                     for (int i = 0; i < srcStr[threadNum].length; i++) {
                         ClearText += (char)srcStr[threadNum][i];
                     }
-
                     resultStr[threadNum] = ClearText;
                 } else {
                     resultStr[threadNum] = "";
                 }
-            };
-
-        });
+            }
+        }
 
         //-------------------------------------------------------------------------//
-        // すべてのスレッドが結果を返すまで待機する。
+        // 指定文字数での結果報告
         //-------------------------------------------------------------------------//
         while (true) {
             int resultCount = 0;
-
-            try {
-                Thread.sleep(500);
-            } catch (Exception e) {
-
-            }
 
             for (int i = 0; i < threadMax; i++) {
                 if (resultStr[i] != null) {
                     if (resultStr[i] != "") {
                         // デバッグ用
-//                      if (output_clearTextList) save_clearTextList();
+                        if (output_clearTextList)
+                            save_clearTextList();
 
                         // いずれかのスレッドが文字列を返してきた場合（見つかった場合）
                         return resultStr[i];
@@ -323,7 +340,8 @@ public class SearchClearText {
 
                         if (resultCount >= threadMax) {
                             // デバッグ用
-//                          if (output_clearTextList) save_clearTextList();
+                            if (output_clearTextList)
+                                save_clearTextList();
 
                             // すべて""だった場合（見つからなかった場合）
                             return null;
@@ -359,9 +377,9 @@ public class SearchClearText {
     // 当該階層の平文候補を生成しハッシュ値と比較する。
     // 見つからなければ次の階層へ。
     //-------------------------------------------------------------------//
-    protected boolean Get_NextClearText_Group_All(int threadNum, byte[][] targetArray, byte[][] chr, int i) {
+    protected boolean Get_NextClearText_Group_All(int threadNum, byte[][] targetArray, byte[][] chr, int target_strLength) {
         // 文字列の長さの上限を超えた場合は中止する。
-        if (i > chr[threadNum].length - 1) {
+        if (target_strLength > chr[threadNum].length - 1) {
             return (false);
         }
 
@@ -370,11 +388,12 @@ public class SearchClearText {
 
         // まずは文字列長iの候補をチェック
         for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++) {
-            chr[threadNum][i] = targetChars[index];
-            targetArray[threadNum][i] = chr[threadNum][i];
+            chr[threadNum][target_strLength] = targetChars[index];
+            targetArray[threadNum][target_strLength] = chr[threadNum][target_strLength];
 
             // デバッグ用出力
-//          if (output_clearTextList)   clearTextList += "\"" + (new String(targetArray[threadNum])) + "\"\r\n";
+            if (output_clearTextList)
+                clearTextList += "\"" + (new String(targetArray[threadNum])) + "\"\r\n";
 
             // 指定したアルゴリズムにてハッシュ値を生成する。
             if (target_HashedStr.equals(computeHash.ComputeHash_Common(Algorithm_Index, targetArray[threadNum]))) {
@@ -384,9 +403,9 @@ public class SearchClearText {
 
         // 文字列長i + 1の候補をチェック
         for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++) {
-            chr[threadNum][i] = targetChars[index];
+            chr[threadNum][target_strLength] = targetChars[index];
 
-            if (Get_NextClearText_Group_All_level2(threadNum, targetArray, chr, i + 1)) {
+            if (Get_NextClearText_Group_All_level2(threadNum, targetArray, chr, target_strLength + 1)) {
                 return (true);
             }
         }
@@ -398,25 +417,26 @@ public class SearchClearText {
     // 当該階層の平文候補を生成しハッシュ値と比較する。
     // 見つからなければ次の階層へ。
     //-------------------------------------------------------------------//
-    protected boolean Get_NextClearText_Group_All_level2(int threadNum, byte[][] targetArray, byte[][] chr, int i) {
+    protected boolean Get_NextClearText_Group_All_level2(int threadNum, byte[][] targetArray, byte[][] chr, int target_strLength) {
         // 文字列の長さの上限を超えた場合は中止する。
-        if (i > chr[threadNum].length - 1) {
+        if (target_strLength > chr[threadNum].length - 1) {
             return (false);
         }
 
-        targetArray[threadNum] = new byte[i + 1];
+        targetArray[threadNum] = new byte[target_strLength + 1];
 
-        for (int col = 0; col < i; col++) {
+        for (int col = 0; col < target_strLength; col++) {
             targetArray[threadNum][col] = chr[threadNum][col];
         }
 
         // まずは文字列長iの候補をチェック
         for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++) {
-            chr[threadNum][i] = targetChars[index];
-            targetArray[threadNum][i] = (byte)chr[threadNum][i];
+            chr[threadNum][target_strLength] = targetChars[index];
+            targetArray[threadNum][target_strLength] = (byte)chr[threadNum][target_strLength];
 
             // デバッグ用出力
-//          if (output_clearTextList)   clearTextList += "\"" + (new String(targetArray[threadNum])) + "\"\r\n";
+            if (output_clearTextList)
+                clearTextList += "\"" + (new String(targetArray[threadNum])) + "\"\r\n";
 
             // 指定したアルゴリズムにてハッシュ値を生成する。
             if (target_HashedStr.equals(computeHash.ComputeHash_Common(Algorithm_Index, targetArray[threadNum]))) {
@@ -426,9 +446,9 @@ public class SearchClearText {
 
         // 文字列長i + 1の候補をチェック
         for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++) {
-            chr[threadNum][i] = targetChars[index];
+            chr[threadNum][target_strLength] = targetChars[index];
 
-            if (Get_NextClearText_Group_All_level2(threadNum, targetArray, chr, i + 1)) {
+            if (Get_NextClearText_Group_All_level2(threadNum, targetArray, chr, target_strLength + 1)) {
                 return (true);
             }
         }

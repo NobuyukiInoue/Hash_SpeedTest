@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-//using System.Threading.Tasks;
 
 namespace Project_CS
 {
@@ -9,7 +8,7 @@ namespace Project_CS
         private DateTime startTime;
         private int ClearTextMaxLength;
 
-        public void Main(string open_FileName, int thread_count, int search_max_length, int search_mode)
+        public void Main(string open_FileName, int thread_count, int search_max_length, int search_mode, Boolean use_muiltiThread, Boolean use_debug)
         {
             // ハッシュ文字列が保存されたファイルの読み込み
             StreamReader sr = new StreamReader(open_FileName);
@@ -31,7 +30,14 @@ namespace Project_CS
             Console.WriteLine("=====================================================================================");
             Console.WriteLine("algorithm          : " + algorithm);
             Console.WriteLine("target Hashed Text : " + target_hashed_text);
-            Console.WriteLine("thread count       : " + thread_count.ToString());
+            if (use_muiltiThread)
+            {
+                Console.WriteLine("thread count       : " + thread_count.ToString());
+            }
+            else
+            {
+                Console.WriteLine("multithread        : " + use_muiltiThread.ToString());
+            }
             Console.WriteLine("search max length  : " + search_max_length.ToString());
             Console.WriteLine("=====================================================================================");
 
@@ -39,7 +45,7 @@ namespace Project_CS
             sw.Start();
 
             // 総当たり検索実行
-            search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode);
+            search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode, use_muiltiThread, use_debug);
 
             sw.Stop();
             Console.WriteLine("Total Execute time ... " + sw.ElapsedMilliseconds.ToString() + " ms\n");
@@ -49,7 +55,7 @@ namespace Project_CS
         // 元の文字列を検索
         //-----------------------------------------------------------------------------//
         // private async void search(string target_hashed_text, string algorithm, int threadMax, int search_ClearText_MaxLength)
-        private void search(string target_hashed_text, string algorithm, int threadMax, int search_ClearText_MaxLength, int search_mode)
+        private void search(string target_hashed_text, string algorithm, int threadMax, int search_ClearText_MaxLength, int search_mode, Boolean use_muiltiThread, Boolean use_debug)
         {
             // 使用するスレッド数の指定チェック
             if ((threadMax != 1)
@@ -99,10 +105,10 @@ namespace Project_CS
             ch = null;
 
             // １文字から指定した文字列長まで検索する。
-            for (int i = 1; i <= search_ClearText_MaxLength; i++)
+            for (int target_strLength = 1; target_strLength <= search_ClearText_MaxLength; target_strLength++)
             {
                 // 平文検索処理用インスタンスの生成
-                searchClearText = new SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0);
+                searchClearText = new SearchClearText(Algorithm_Index, target_hashed_text, target_strLength, threadMax, 0, use_muiltiThread, use_debug);
 
                 // 文字数iでの総当たり平文検索開始時刻を保存
                 DateTime current_startTime = DateTime.Now;
@@ -110,13 +116,6 @@ namespace Project_CS
                 //---------------------------------------------------------------------//
                 // 文字数iでの総当たり平文検索開始
                 //---------------------------------------------------------------------//
-                /*
-                await Task.Run(() =>
-                {
-                    // 文字列の検索を開始
-                    resultStr = searchClearText.Get_ClearText(threadMax);
-                });
-                */
                 resultStr = searchClearText.Get_ClearText(threadMax);
 
                 // 総当たり平文検索終了時刻との差を取得
@@ -136,10 +135,10 @@ namespace Project_CS
                 }
                 else
                 {
-                    Console.WriteLine(ts.ToString(@"hh\:mm\:ss\.fff") + " ... " + i.ToString() + "文字の組み合わせ照合終了");
+                    Console.WriteLine(ts.ToString(@"hh\:mm\:ss\.fff") + " ... " + target_strLength.ToString() + "文字の組み合わせ照合終了");
 
                     /*
-                    if (i == 2)
+                    if (target_strLength == 2)
                     {
                         // 2桁目まで終わったら、2桁の処理時間を基に予想終了時刻を算出する。
                         TimeSpan oneLengthTime = DateTime.Now - current_startTime;

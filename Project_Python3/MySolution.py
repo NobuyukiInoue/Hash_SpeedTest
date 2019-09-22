@@ -15,7 +15,7 @@ class MySolution:
         self.ClearTextMaxLength = 0
 
 
-    def Main(self, open_FileName, thread_count, search_max_length, search_mode):
+    def Main(self, open_FileName, thread_count, search_max_length, search_mode, use_multiThread, use_debug):
         # ハッシュ文字列が保存されたファイルの読み込み
         with open(open_FileName, mode='r') as f:
             lines = f.readlines()
@@ -35,25 +35,33 @@ class MySolution:
         # 検索する平文の最大文字列長
         ClearTextMaxLength = search_max_length
 
-        print("=====================================================================================\n"
-              "algorithm          : {0}\n"
-              "target Hashed Text : {1}\n"
-              "thread count       : {2}\n"
-              "search max length  : {3}\n"
-              "====================================================================================="
-              .format(algorithm, target_hashed_text, thread_count, search_max_length))
-
+        if use_multiThread:
+            print("=====================================================================================\n"
+                "algorithm          : {0}\n"
+                "target Hashed Text : {1}\n"
+                "thread count       : {2}\n"
+                "search max length  : {3}\n"
+                "====================================================================================="
+                .format(algorithm, target_hashed_text, thread_count, search_max_length))
+        else:
+            print("=====================================================================================\n"
+                "algorithm          : {0}\n"
+                "target Hashed Text : {1}\n"
+                "Use MultiThre      : {2}\n"
+                "search max length  : {3}\n"
+                "====================================================================================="
+                .format(algorithm, target_hashed_text, use_multiThread, search_max_length))
 
         time0 = time.time()
 
         # 総当たり検索実行
-        self.search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode)
+        self.search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode, use_multiThread, use_debug)
         time1 = time.time()
 
         print("Execute time ... : {0:f}[s]\n".format(time1 - time0))
     
 
-    def search(self, target_hashed_text, algorithm, threadMax, search_ClearText_MaxLength, search_mode):
+    def search(self, target_hashed_text, algorithm, threadMax, search_ClearText_MaxLength, search_mode, use_multiThread, use_debug):
         # 使用するスレッド数の指定チェック
         if threadMax != 1 \
         and threadMax != 2 \
@@ -84,7 +92,7 @@ class MySolution:
         # １文字から指定した文字列長まで検索する。
         for i in range(1, search_ClearText_MaxLength + 1):
             # 平文検索処理用インスタンスの生成
-            searchClearText = SearchClearText.SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0)
+            searchClearText = SearchClearText.SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0, use_multiThread, use_debug)
 
             # 文字数iでの総当たり平文検索開始時刻を保存
             # current_startTime = time.time()
@@ -105,10 +113,10 @@ class MySolution:
                       "\n"
                       "結果 = {0}\n"
                       "\n"
-                      "解析時間 = {1} 秒".format(resultStr, ts))
+                      "解析時間 = {1:.3f} 秒".format(resultStr, ts))
                 break
             else:
-                print("{0}  ... {1} 文字の組み合わせ照合終了".format(ts, i))
+                print("{0:.3f}  ... {1} 文字の組み合わせ照合終了".format(ts, i))
 
         # 平文検索処理用インスタンスを解放する。
         searchClearText = None

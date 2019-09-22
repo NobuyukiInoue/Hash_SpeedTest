@@ -1,6 +1,4 @@
-﻿// #define output_clearTextList
-
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,14 +8,22 @@ namespace Project_CS
     /// 元の文字列（平文）候補を生成し、ハッシュ文字列と比較処理を行うクラス
     public class SearchClearText
     {
+        /// デバッグ出力の可否
+        private Boolean output_clearTextList;
+
         /// 処理済み平文の出力用文字列（デバッグ用）
         private string clearTextList = "";
+
+        /// マルチスレッド処理の可否
+        private bool useMultiThread;
 
         /// ハッシュ処理用クラスのインスタンス
         private ComputeHash computeHash = new ComputeHash();
 
         /// 各スレッド処理終了時結果文字列
         private string[] resultStr;
+
+        /// 検索対象のハッシュ後文字列
         private string target_HashedStr;
 
         /// 元の文字列の候補
@@ -41,8 +47,11 @@ namespace Project_CS
         /// 選択したアルゴリズムのインデックス番号
         private int Algorithm_Index;
 
-        public SearchClearText(int alg_index, string targetStr, int strLen, int threadMax, int mode)
+        public SearchClearText(int alg_index, string targetStr, int strLen, int threadMax, int mode, Boolean use_multiThread, Boolean use_debug)
         {
+            output_clearTextList = use_debug;
+            useMultiThread = use_multiThread;
+
             srcStr = new byte[threadMax][];
             chr = new byte[threadMax][];
 
@@ -284,14 +293,47 @@ namespace Project_CS
             //-------------------------------------------------------------------------//
             // 平文が１文字以上の文字列の場合
             //-------------------------------------------------------------------------//
-            string[] resultStr = new string[threadMax];
+            resultStr = new string[threadMax];
 
-            //---------------------------------------------------------------------//
-            // スレッド生成
-            //---------------------------------------------------------------------//
-            Task task = Task.Factory.StartNew(() =>
+            if (useMultiThread)
             {
-                Parallel.For(0, threadMax, threadNum =>
+                //---------------------------------------------------------------------//
+                // スレッド生成
+                //---------------------------------------------------------------------//
+                Task task = Task.Factory.StartNew(() =>
+                {
+                    Parallel.For(0, threadMax, threadNum =>
+                    {
+                        // 指定したアルゴリズムにてハッシュ値を生成する。
+                        if (Get_NextClearText_Group_All(threadNum, ref srcStr, ref chr, 0))
+                        {
+                            //-----------------------------------------------------------//
+                            // 同じハッシュ値が生成できる元の文字列が見つかった場合
+                            //-----------------------------------------------------------//
+                            string ClearText = "";
+                            for (int i = 0; i < srcStr[threadNum].Length; i++)
+                            {
+                                ClearText += Convert.ToChar(srcStr[threadNum][i]);
+                            }
+
+                            resultStr[threadNum] = ClearText;
+                        }
+                        else
+                        {
+                            resultStr[threadNum] = "";
+                        }
+                    });
+                });
+
+                // メインスレッド仮待機
+                task.Wait(1);
+            }
+            else
+            {
+                //---------------------------------------------------------------------//
+                // 直列実行
+                //---------------------------------------------------------------------//
+                for (int threadNum = 0; threadNum < threadMax; threadNum++)
                 {
                     // 指定したアルゴリズムにてハッシュ値を生成する。
                     if (Get_NextClearText_Group_All(threadNum, ref srcStr, ref chr, 0))
@@ -311,20 +353,14 @@ namespace Project_CS
                     {
                         resultStr[threadNum] = "";
                     }
-                });
-            });
-
-            // メインスレッド仮待機
-            task.Wait(1);
-
+                }
+            }
             //-------------------------------------------------------------------------//
-            // すべてのスレッドが結果を返すまで待機する。
+            // 指定文字数での結果報告
             //-------------------------------------------------------------------------//
             while (true)
             {
                 int resultCount = 0;
-
-                System.Threading.Thread.Sleep(500);
 
                 for (int i = 0; i < threadMax; i++)
                 {
@@ -332,9 +368,9 @@ namespace Project_CS
                     {
                         if (resultStr[i] != "")
                         {
-                            #if output_clearTextList
+                            // デバッグ用出力
+                            if (output_clearTextList)
                                 save_clearTextList();
-                            #endif
 
                             // いずれかのスレッドが文字列を返してきた場合（見つかった場合）
                             return resultStr[i];
@@ -345,9 +381,9 @@ namespace Project_CS
 
                             if (resultCount >= threadMax)
                             {
-                                #if output_clearTextList
+                                // デバッグ用出力
+                                if (output_clearTextList)
                                     save_clearTextList();
-                                #endif
 
                                 // すべて""だった場合（見つからなかった場合）
                                 return null;
@@ -363,18 +399,19 @@ namespace Project_CS
         //-------------------------------------------------------------------//
         private void save_clearTextList()
         {
-            StreamWriter sw = new StreamWriter("ClearTextList_" + srcStr[0].Length + ".txt" , true);
+            StreamWriter sw = new StreamWriter("ClearTextList_" + srcStr[0].Length + ".txt" , false);
             sw.Write(clearTextList);
+            sw.Close();
         }
 
         //-------------------------------------------------------------------//
         // 当該階層の平文候補を生成しハッシュ値と比較する。
         // 見つからなければ次の階層へ。
         //-------------------------------------------------------------------//
-        protected bool Get_NextClearText_Group_All(int threadNum, ref byte[][] targetArray, ref byte[][] chr, int i)
+        protected bool Get_NextClearText_Group_All(int threadNum, ref byte[][] targetArray, ref byte[][] chr, int target_strLength)
         {
             // 文字列の長さの上限を超えた場合は中止する。
-            if (i > chr[threadNum].Length - 1)
+            if (target_strLength > chr[threadNum].Length - 1)
             {
                 return (false);
             }
@@ -385,13 +422,12 @@ namespace Project_CS
             // まずは文字列長iの候補をチェック
             for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++)
             {
-                chr[threadNum][i] = targetChars[index];
-                targetArray[threadNum][i] = chr[threadNum][i];
+                chr[threadNum][target_strLength] = targetChars[index];
+                targetArray[threadNum][target_strLength] = chr[threadNum][target_strLength];
 
                 // デバッグ用出力
-                #if output_clearTextList
+                if (output_clearTextList)
                     clearTextList += "\"" + System.Text.Encoding.ASCII.GetString(targetArray[threadNum]) + "\"\r\n";
-                #endif
 
                 // 指定したアルゴリズムにてハッシュ値を生成する。
                 if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, targetArray[threadNum]))
@@ -403,9 +439,9 @@ namespace Project_CS
             // 文字列長i + 1の候補をチェック
             for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++)
             {
-                chr[threadNum][i] = targetChars[index];
+                chr[threadNum][target_strLength] = targetChars[index];
 
-                if (Get_NextClearText_Group_All_level2(threadNum, ref targetArray, ref chr, i + 1))
+                if (Get_NextClearText_Group_All_level2(threadNum, ref targetArray, ref chr, target_strLength + 1))
                 {
                     return (true);
                 }
@@ -418,17 +454,17 @@ namespace Project_CS
         // 当該階層の平文候補を生成しハッシュ値と比較する。
         // 見つからなければ次の階層へ。
         //-------------------------------------------------------------------//
-        protected bool Get_NextClearText_Group_All_level2(int threadNum, ref byte[][] targetArray, ref byte[][] chr, int i)
+        protected bool Get_NextClearText_Group_All_level2(int threadNum, ref byte[][] targetArray, ref byte[][] chr, int target_strLength)
         {
             // 文字列の長さの上限を超えた場合は中止する。
-            if (i > chr[threadNum].Length - 1)
+            if (target_strLength > chr[threadNum].Length - 1)
             {
                 return (false);
             }
 
-            targetArray[threadNum] = new byte[i + 1];
+            targetArray[threadNum] = new byte[target_strLength + 1];
 
-            for (int col = 0; col < i; col++)
+            for (int col = 0; col < target_strLength; col++)
             {
                 targetArray[threadNum][col] = chr[threadNum][col];
             }
@@ -436,13 +472,12 @@ namespace Project_CS
             // まずは文字列長iの候補をチェック
             for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++)
             {
-                chr[threadNum][i] = targetChars[index];
-                targetArray[threadNum][i] = (byte)chr[threadNum][i];
+                chr[threadNum][target_strLength] = targetChars[index];
+                targetArray[threadNum][target_strLength] = (byte)chr[threadNum][target_strLength];
 
                 // デバッグ用出力
-                #if output_clearTextList
+                if (output_clearTextList)
                     clearTextList += "\"" + System.Text.Encoding.ASCII.GetString(targetArray[threadNum]) + "\"\r\n";
-                #endif
 
                 // 指定したアルゴリズムにてハッシュ値を生成する。
                 if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, targetArray[threadNum]))
@@ -454,9 +489,9 @@ namespace Project_CS
             // 文字列長i + 1の候補をチェック
             for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++)
             {
-                chr[threadNum][i] = targetChars[index];
+                chr[threadNum][target_strLength] = targetChars[index];
 
-                if (Get_NextClearText_Group_All_level2(threadNum, ref targetArray, ref chr, i + 1))
+                if (Get_NextClearText_Group_All_level2(threadNum, ref targetArray, ref chr, target_strLength + 1))
                 {
                     return (true);
                 }
