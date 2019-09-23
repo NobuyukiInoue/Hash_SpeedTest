@@ -28,6 +28,7 @@ namespace Project_CS
             ClearTextMaxLength = search_max_length;
 
             Console.WriteLine("=====================================================================================");
+            Console.WriteLine("Date               : " + DateTime.Now);
             Console.WriteLine("algorithm          : " + algorithm);
             Console.WriteLine("target Hashed Text : " + target_hashed_text);
             if (use_muiltiThread)
@@ -130,7 +131,7 @@ namespace Project_CS
                                     + "\r\n"
                                     + "結果 = " + resultStr + "\r\n"
                                     + "\r\n"
-                                    + "解析時間 = " + ts.ToString(@"hh\:mm\:ss\.fff") + " 秒");
+                                    + "解析時間 = " + ts.ToString(@"hh\:mm\:ss\.fff"));
                     break;
                 }
                 else

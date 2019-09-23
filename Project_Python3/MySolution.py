@@ -1,12 +1,13 @@
 # coding: utf-8
 
+import datetime
 import time
 import re
 
 """ import local liblarys """
 import ComputeHash
 import SearchClearText
-
+import TimeFormatter
 
 class MySolution:
 
@@ -37,12 +38,13 @@ class MySolution:
 
         if use_multiThread:
             print("=====================================================================================\n"
-                "algorithm          : {0}\n"
-                "target Hashed Text : {1}\n"
-                "thread count       : {2}\n"
-                "search max length  : {3}\n"
+                "Date               : {0}\n"
+                "algorithm          : {1}\n"
+                "target Hashed Text : {2}\n"
+                "thread count       : {3}\n"
+                "search max length  : {4}\n"
                 "====================================================================================="
-                .format(algorithm, target_hashed_text, thread_count, search_max_length))
+                .format("{0:%Y-%m-%d %H:%M:%S}".format(datetime.datetime.now()), algorithm, target_hashed_text, thread_count, search_max_length))
         else:
             print("=====================================================================================\n"
                 "algorithm          : {0}\n"
@@ -58,7 +60,7 @@ class MySolution:
         self.search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode, use_multiThread, use_debug)
         time1 = time.time()
 
-        print("Execute time ... : {0:f}[s]\n".format(time1 - time0))
+        print("Execute time ... : {0:f} [ms]\n".format((time1 - time0)*1000))
     
 
     def search(self, target_hashed_text, algorithm, threadMax, search_ClearText_MaxLength, search_mode, use_multiThread, use_debug):
@@ -113,10 +115,10 @@ class MySolution:
                       "\n"
                       "結果 = {0}\n"
                       "\n"
-                      "解析時間 = {1:.3f} 秒".format(resultStr, ts))
+                      "解析時間 = {1}".format(resultStr, TimeFormatter.format(ts)))
                 break
             else:
-                print("{0:.3f}  ... {1} 文字の組み合わせ照合終了".format(ts, i))
+                print("{0}  ... {1} 文字の組み合わせ照合終了".format(TimeFormatter.format(ts), i))
 
         # 平文検索処理用インスタンスを解放する。
         searchClearText = None

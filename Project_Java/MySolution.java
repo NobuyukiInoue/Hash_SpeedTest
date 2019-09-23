@@ -3,6 +3,8 @@ import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MySolution {
@@ -29,7 +31,12 @@ public class MySolution {
         // ŒŸõ‚·‚é•½•¶‚ÌÅ‘å•¶š—ñ’·
         ClearTextMaxLength = search_max_length;
 
+        // “ú•t‚Ìæ“¾
+		DateTimeFormatter df1 = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+        String datetimeStr = df1.format(LocalDateTime.now());
+
         System.out.println("=====================================================================================");
+        System.out.println("Date               : " + datetimeStr);
         System.out.println("algorithm          : " + algorithm);
         System.out.println("target Hashed Text : " + target_hashed_text);
         if (use_multiThread) {
@@ -46,7 +53,7 @@ public class MySolution {
         search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode, use_multiThread, use_debug);
 
         long end = System.currentTimeMillis();
-        System.out.println("Total Execute time ... " + (end - start)  + "ms\n");
+        System.out.println("Total Execute time ... " + (end - start)  + " ms\n");
     }
 
     //-----------------------------------------------------------------------------//
@@ -152,7 +159,7 @@ public class MySolution {
                                 + "\r\n"
                                 + "Œ‹‰Ê = " + resultStr + "\r\n"
                                 + "\r\n"
-                                + "‰ğÍŠÔ = " + timeformatter.format(ts) + " •b");
+                                + "‰ğÍŠÔ = " + timeformatter.format(ts));
                 break;
             } else {
                 System.out.println(timeformatter.format(ts) + " ... " + Integer.toString(target_strLen) + "•¶š‚Ì‘g‚İ‡‚í‚¹Æ‡I—¹");

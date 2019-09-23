@@ -6,13 +6,10 @@ public class TimeFormatter {
         long second = (millis / 1000)  % 60;
         long millisSec = millis % 1000;
 
-        String time;
         if (day > 0) {
-            time = String.format("%d day + %02d:%02d:%02d:%03d", day, hour, minute, second, millisSec);
+            return String.format("%d day + %02d:%02d:%02d.%03d", day, hour, minute, second, millisSec);
         } else {
-            time = String.format("%02d:%02d:%02d:%03d", hour, minute, second, millisSec);
+            return String.format("%02d:%02d:%02d.%03d", hour, minute, second, millisSec);
         }
-
-        return time;
     }
 }

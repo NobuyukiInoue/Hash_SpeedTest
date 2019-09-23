@@ -111,7 +111,7 @@ namespace Project_CS
 
         private static void print_msg_and_exit()
         {
-            Console.WriteLine("\nUsage: dotnet run <testdata.txt> <thread_count> [use_multiThread] [search_max_length] [debug]");
+            Console.WriteLine("\nUsage: " + System.Reflection.Assembly.GetExecutingAssembly().Location + " <testdata.txt> <thread_count> [use_multiThread] [search_max_length] [debug]");
             Environment.Exit(-1);
         }
     }

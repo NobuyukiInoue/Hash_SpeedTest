@@ -5,7 +5,7 @@ import threading
 
 """ import local liblarys """
 import ComputeHash
-
+import TimeFormatter
 
 class SearchClearText:
 
