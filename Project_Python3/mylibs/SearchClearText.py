@@ -4,8 +4,8 @@ import time
 import threading
 
 """ import local liblarys """
-import ComputeHash
-import TimeFormatter
+from .ComputeHash import ComputeHash
+from . import TimeFormatter
 
 class SearchClearText:
 
@@ -49,7 +49,7 @@ class SearchClearText:
         # 検索範囲配列の初期化
         self.targetChars_Init(mode)
 
-        self.ch = ComputeHash.ComputeHash()
+        self.ch = ComputeHash()
 
     #-----------------------------------------------------------------------------
     # 検索対象文字を配列にセットする。

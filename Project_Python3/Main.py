@@ -5,7 +5,7 @@ import sys
 import time
 
 """ import local liblarys """
-import MySolution
+from mylibs.MySolution import MySolution
 
 
 def print_msg_and_exit(myname):
@@ -81,7 +81,7 @@ def main():
             print("use_debug ... [TRUE | FALSE]")
             print_msg_and_exit(argv[0])
 
-    sl = MySolution.MySolution()
+    sl = MySolution()
     sl.Main(open_filename, thread_num, search_max_length, 0, use_multiThread, use_debug)
 
 

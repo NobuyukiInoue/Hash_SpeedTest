@@ -41,16 +41,20 @@ func Start(openFileName string, threadCount int, searchMaxLength int, searchMode
 	// 検索する平文の最大文字列長
 	ClearTextMaxLength = searchMaxLength
 
-	fmt.Printf("=====================================================================================\n")
-	fmt.Printf("algorithm          : " + algorithm + "\n")
-	fmt.Printf("target Hashed Text : " + targetHashedText + "\n")
+	t := time.Now()
+	const layout = "2006/01/02 15:04:05"
+
+	fmt.Println("=====================================================================================")
+	fmt.Println("Date               : " + t.Format(layout))
+	fmt.Println("algorithm          : " + algorithm)
+	fmt.Println("target Hashed Text : " + targetHashedText)
 	if enableMuiltiThread {
-		fmt.Printf("thread count       : " + strconv.Itoa(threadCount) + "\n")
+		fmt.Println("thread count       : " + strconv.Itoa(threadCount))
 	} else {
-		fmt.Printf("multithread        : " + strconv.FormatBool(enableMuiltiThread) + "\n")
+		fmt.Println("multithread        : " + strconv.FormatBool(enableMuiltiThread))
 	}
-	fmt.Printf("search max length  : " + strconv.Itoa(searchMaxLength) + "\n")
-	fmt.Printf("=====================================================================================\n")
+	fmt.Println("search max length  : " + strconv.Itoa(searchMaxLength))
+	fmt.Println("=====================================================================================")
 
 	timeStart := time.Now()
 
@@ -117,17 +121,17 @@ func search(targetHashedText string, algorithm string, threadMax int, searchMaxL
 		// 文字数iでの総当たり平文検索終了
 		//---------------------------------------------------------------------//
 		if resultStrLen >= 0 {
-			fmt.Printf("元の文字列が見つかりました！\r\n" +
+			fmt.Println("元の文字列が見つかりました！\r\n" +
 				"\r\n" +
 				"結果 = " + resultStr + "\r\n" +
 				"\r\n" +
-				"解析時間 = " + timeformatter.TsFormat(ts) + "\n")
+				"解析時間 = " + timeformatter.TsFormat(ts))
 			break
 		} else {
-			fmt.Printf(timeformatter.TsFormat(ts) + " ... " + strconv.Itoa(targetStrLength) + "文字の組み合わせ照合終了\n")
+			fmt.Println(timeformatter.TsFormat(ts) + " ... " + strconv.Itoa(targetStrLength) + "文字の組み合わせ照合終了")
 		}
 	}
 
 	// 見つからなかった場合
-	fmt.Printf("見つかりませんでした。\n")
+	fmt.Println("見つかりませんでした。")
 }

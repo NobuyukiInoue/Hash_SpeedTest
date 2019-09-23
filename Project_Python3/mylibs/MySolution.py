@@ -5,9 +5,8 @@ import time
 import re
 
 """ import local liblarys """
-import ComputeHash
-import SearchClearText
-import TimeFormatter
+from .SearchClearText import SearchClearText
+from . import TimeFormatter
 
 class MySolution:
 
@@ -94,7 +93,7 @@ class MySolution:
         # １文字から指定した文字列長まで検索する。
         for i in range(1, search_ClearText_MaxLength + 1):
             # 平文検索処理用インスタンスの生成
-            searchClearText = SearchClearText.SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0, use_multiThread, use_debug)
+            searchClearText = SearchClearText(Algorithm_Index, target_hashed_text, i, threadMax, 0, use_multiThread, use_debug)
 
             # 文字数iでの総当たり平文検索開始時刻を保存
             # current_startTime = time.time()
