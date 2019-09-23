@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	mysolution "./mySolution"
 )
 
 func main() {
@@ -87,7 +89,7 @@ func main() {
 		}
 	}
 
-	MySolutionMain(openFileName, threadCount, searchMaxLength, 0, enableMultiThread, enableDebug)
+	mysolution.Start(openFileName, threadCount, searchMaxLength, 0, enableMultiThread, enableDebug)
 }
 
 func printMsgAndExit() {

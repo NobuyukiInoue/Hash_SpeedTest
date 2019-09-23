@@ -1,10 +1,12 @@
-﻿package main
+﻿package searchcleartext
 
 import (
 	"fmt"
 	"os"
 	"strconv"
 	"unsafe"
+
+	"./computehash"
 )
 
 // 元の文字列（平文）候補を生成し、ハッシュ文字列と比較処理を行うモジュール
@@ -262,7 +264,7 @@ func GetClearText(threadMax int) (string, int) {
 	// 平文が""かどうかを判定する。
 	//-------------------------------------------------------------------------//
 	//if targetHashedtr == ComputeHashCommon(AlgorithmIndex, "") {
-	res := ComputeHashCommon(AlgorithmIndex, "")
+	res := computehash.ComputeHashCommon(AlgorithmIndex, "")
 	if targetHashedtr == res {
 		return "", 0
 	}
@@ -395,7 +397,7 @@ func GetNextClearTextGroupAll(threadNum int, targetStrLength int) bool {
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
 		//if targetHashedtr == ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum]) {
-		res := ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
+		res := computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
 		if targetHashedtr == res {
 
 			return true
@@ -447,7 +449,7 @@ func GetNextClearTextGroupAllLevel2(threadNum int, targetStrLength int) bool {
 		}
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
-		res := ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
+		res := computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
 		if targetHashedtr == res {
 			return true
 		}

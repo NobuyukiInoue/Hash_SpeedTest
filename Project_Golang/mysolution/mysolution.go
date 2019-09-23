@@ -1,4 +1,4 @@
-package main
+package mysolution
 
 import (
 	"fmt"
@@ -8,6 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"./searchcleartext"
+	"./timeformatter"
 )
 
 var startTime int
@@ -15,9 +18,8 @@ var startTime int
 // ClearTextMaxLength ... 平文の最大文字数
 var ClearTextMaxLength int
 
-// MySolutionMain ...
-// MySolutionMain
-func MySolutionMain(openFileName string, threadCount int, searchMaxLength int, searchMode int, enableMuiltiThread bool, enableDebug bool) {
+// Start ...
+func Start(openFileName string, threadCount int, searchMaxLength int, searchMode int, enableMuiltiThread bool, enableDebug bool) {
 	// ハッシュ文字列が保存されたファイルの読み込み
 	fp, _ := os.Open(openFileName)
 	readBytes, _ := ioutil.ReadAll(fp)
@@ -97,7 +99,7 @@ func search(targetHashedText string, algorithm string, threadMax int, searchMaxL
 	for targetStrLength := 1; targetStrLength <= searchMaxLength; targetStrLength++ {
 
 		// 平文検索処理用インスタンスの生成
-		InitSearchClearText(AlgorithmIndex, targetHashedText, targetStrLength, threadMax, 0, enableMuiltiThread, enableDebug)
+		searchcleartext.InitSearchClearText(AlgorithmIndex, targetHashedText, targetStrLength, threadMax, 0, enableMuiltiThread, enableDebug)
 
 		// 文字数iでの総当たり平文検索開始時刻を保存
 		currentStartTime := time.Now()
@@ -105,7 +107,7 @@ func search(targetHashedText string, algorithm string, threadMax int, searchMaxL
 		//---------------------------------------------------------------------//
 		// 文字数iでの総当たり平文検索開始
 		//---------------------------------------------------------------------//
-		resultStr, resultStrLen := GetClearText(threadMax)
+		resultStr, resultStrLen := searchcleartext.GetClearText(threadMax)
 
 		// 総当たり平文検索終了時刻との差を取得
 		//	ts := time.Now() - startTime
@@ -119,10 +121,10 @@ func search(targetHashedText string, algorithm string, threadMax int, searchMaxL
 				"\r\n" +
 				"結果 = " + resultStr + "\r\n" +
 				"\r\n" +
-				"解析時間 = " + TsFormat(ts) + "\n")
+				"解析時間 = " + timeformatter.TsFormat(ts) + "\n")
 			break
 		} else {
-			fmt.Printf(TsFormat(ts) + " ... " + strconv.Itoa(targetStrLength) + "文字の組み合わせ照合終了\n")
+			fmt.Printf(timeformatter.TsFormat(ts) + " ... " + strconv.Itoa(targetStrLength) + "文字の組み合わせ照合終了\n")
 		}
 	}
 
