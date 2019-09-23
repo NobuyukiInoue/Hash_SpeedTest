@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"crypto/md5"
@@ -8,6 +8,17 @@ import (
 	"fmt"
 	"unsafe"
 )
+
+func main() {
+	printHash("")
+	printHash("0\"")
+	printHash("~~~")
+	printHash("aaa")
+}
+
+func printHash(targetStr string) {
+	fmt.Printf("%s --> %s\n", targetStr, ComputeHashCommon(2, targetStr))
+}
 
 // ComputeHashCommon ...
 // ハッシュ関数呼び出し用 for string

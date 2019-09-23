@@ -11,11 +11,15 @@ import (
 )
 
 var startTime int
+
+// ClearTextMaxLength ... 平文の最大文字数
 var ClearTextMaxLength int
 
-func MySolutionMain(open_FileName string, thread_count int, search_max_length int, search_mode int, use_muiltiThread bool, use_debug bool) {
+// MySolutionMain ...
+// MySolutionMain
+func MySolutionMain(openFileName string, threadCount int, searchMaxLength int, searchMode int, enableMuiltiThread bool, enableDebug bool) {
 	// ハッシュ文字列が保存されたファイルの読み込み
-	fp, _ := os.Open(open_FileName)
+	fp, _ := os.Open(openFileName)
 	readBytes, _ := ioutil.ReadAll(fp)
 	readText := string(readBytes)
 
@@ -30,26 +34,26 @@ func MySolutionMain(open_FileName string, thread_count int, search_max_length in
 	flds := strings.Split(temp, ":")
 
 	algorithm := flds[0]
-	targetHashedText := strings.Trim(flds[1], "")
+	targetHashedText := strings.Trim(flds[1], "\n")
 
 	// 検索する平文の最大文字列長
-	ClearTextMaxLength = search_max_length
+	ClearTextMaxLength = searchMaxLength
 
 	fmt.Printf("=====================================================================================\n")
 	fmt.Printf("algorithm          : " + algorithm + "\n")
 	fmt.Printf("target Hashed Text : " + targetHashedText + "\n")
-	if use_muiltiThread {
-		fmt.Printf("thread count       : " + strconv.Itoa(thread_count) + "\n")
+	if enableMuiltiThread {
+		fmt.Printf("thread count       : " + strconv.Itoa(threadCount) + "\n")
 	} else {
-		fmt.Printf("multithread        : " + strconv.FormatBool(use_muiltiThread) + "\n")
+		fmt.Printf("multithread        : " + strconv.FormatBool(enableMuiltiThread) + "\n")
 	}
-	fmt.Printf("search max length  : " + strconv.Itoa(search_max_length) + "\n")
+	fmt.Printf("search max length  : " + strconv.Itoa(searchMaxLength) + "\n")
 	fmt.Printf("=====================================================================================\n")
 
 	timeStart := time.Now()
 
 	// 総当たり検索実行
-	search(targetHashedText, algorithm, thread_count, ClearTextMaxLength, search_mode, use_muiltiThread, use_debug)
+	search(targetHashedText, algorithm, threadCount, ClearTextMaxLength, searchMode, enableMuiltiThread, enableDebug)
 
 	timeEnd := time.Now()
 	fmt.Printf("Execute time: %.3f [ms]\n\n", timeEnd.Sub(timeStart).Seconds()*1000)
@@ -58,7 +62,7 @@ func MySolutionMain(open_FileName string, thread_count int, search_max_length in
 //-----------------------------------------------------------------------------//
 // 元の文字列を検索
 //-----------------------------------------------------------------------------//
-func search(target_hashed_text string, algorithm string, threadMax int, search_ClearText_MaxLength int, search_mode int, use_muiltiThread bool, use_debug bool) {
+func search(targetHashedText string, algorithm string, threadMax int, searchMaxLength int, searchMode int, enableMuiltiThread bool, enableDebug bool) {
 	// 使用するスレッド数の指定チェック
 	if threadMax != 1 &&
 		threadMax != 2 &&
@@ -71,63 +75,57 @@ func search(target_hashed_text string, algorithm string, threadMax int, search_C
 	algorithmUpper := strings.Replace(algorithm, "-", "", -1)
 	algorithmUpper = strings.ToUpper(algorithmUpper)
 
-	var Algorithm_Index int
+	var AlgorithmIndex int
 	switch algorithmUpper {
 	case "MD5":
-		Algorithm_Index := 0
+		AlgorithmIndex = 0
 	case "SHA1":
-		Algorithm_Index := 1
+		AlgorithmIndex = 1
 	case "SHA256":
-		Algorithm_Index := 2
+		AlgorithmIndex = 2
 	case "SHA386":
-		Algorithm_Index := 3
+		AlgorithmIndex = 3
 	case "SHA512":
-		Algorithm_Index := 4
+		AlgorithmIndex = 4
 	case "RIPED160":
-		Algorithm_Index := 5
+		AlgorithmIndex = 5
 	default:
-		Algorithm_Index := 2 // default .. "SHA256"
+		AlgorithmIndex = 2 // default .. "SHA256"
 	}
 
-	// 現在の時刻を取得
-	startTime := time.Now()
-	var resultStrFin [32]byte
-
 	// １文字から指定した文字列長まで検索する。
-	for target_strLength := 1; target_strLength <= search_ClearText_MaxLength; target_strLength++ {
+	for targetStrLength := 1; targetStrLength <= searchMaxLength; targetStrLength++ {
 
 		// 平文検索処理用インスタンスの生成
-		SearchClearText(Algorithm_Index, target_hashed_text, target_strLength, threadMax, 0, use_muiltiThread, use_debug)
+		InitSearchClearText(AlgorithmIndex, targetHashedText, targetStrLength, threadMax, 0, enableMuiltiThread, enableDebug)
 
 		// 文字数iでの総当たり平文検索開始時刻を保存
-		current_startTime := time.Now()
+		currentStartTime := time.Now()
 
 		//---------------------------------------------------------------------//
 		// 文字数iでの総当たり平文検索開始
 		//---------------------------------------------------------------------//
-		resultStrFin := Get_ClearText(threadMax)
+		resultStr, resultStrLen := GetClearText(threadMax)
 
 		// 総当たり平文検索終了時刻との差を取得
 		//	ts := time.Now() - startTime
-		ts := (time.Now()).Sub(current_startTime).Seconds()
+		ts := (time.Now()).Sub(currentStartTime).Seconds()
 
 		//---------------------------------------------------------------------//
 		// 文字数iでの総当たり平文検索終了
 		//---------------------------------------------------------------------//
-		if len(resultStrFin) > 0 {
+		if resultStrLen >= 0 {
 			fmt.Printf("元の文字列が見つかりました！\r\n" +
 				"\r\n" +
-				"結果 = " + byte32_to_string(resultStrFin) + "\r\n" +
+				"結果 = " + resultStr + "\r\n" +
 				"\r\n" +
 				"解析時間 = " + TsFormat(ts) + "\n")
 			break
 		} else {
-			fmt.Printf(TsFormat(ts) + " ... " + strconv.Itoa(target_strLength) + "文字の組み合わせ照合終了\n")
+			fmt.Printf(TsFormat(ts) + " ... " + strconv.Itoa(targetStrLength) + "文字の組み合わせ照合終了\n")
 		}
 	}
 
-	if byte32_to_string(resultStrFin) == "" {
-		// 見つからなかった場合
-		fmt.Printf("見つかりませんでした。\n")
-	}
+	// 見つからなかった場合
+	fmt.Printf("見つかりませんでした。\n")
 }

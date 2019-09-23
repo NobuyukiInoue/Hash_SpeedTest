@@ -12,7 +12,9 @@
             "program": "${workspaceFolder}",
             "args": [
                 "../testdata/data_~~~.txt",
-                "4"
+                "4",
+                "true",
+                "3"
             ]
         },
         {

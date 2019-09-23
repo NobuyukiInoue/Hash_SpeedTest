@@ -8,89 +8,94 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		print_msg_and_exit()
+	fmt.Printf("argc = %d\n", len(os.Args))
+	for i := 0; i < len(os.Args); i++ {
+		fmt.Printf("%d ... \"%s\"\n", i, os.Args[i])
+	}
+
+	if len(os.Args) < 3 {
+		printMsgAndExit()
 	}
 
 	// ファイル指定のチェック
-	if Exists(os.Args[1]) == false {
+	if exists(os.Args[1]) == false {
 		fmt.Printf(os.Args[1] + " not found.\n")
 		return
 	}
-	open_FileName := os.Args[1]
+	openFileName := os.Args[1]
 
 	// スレッド数指定のチェック
-	thread_num, err := strconv.Atoi(os.Args[2])
-	if err == nil {
+	threadCount, err := strconv.Atoi(os.Args[2])
+	if err != nil {
 		fmt.Printf(os.Args[2] + " in not numeric.\n")
 		return
 	}
 
 	// スレッド数が定義値かどうかのチェック
-	if thread_num != 1 &&
-		thread_num != 2 &&
-		thread_num != 4 &&
-		thread_num != 8 &&
-		thread_num != 16 {
-		fmt.Printf(os.Args[1] + " Please select thread_num from 1, 2, 4, 8, 16\n")
+	if threadCount != 1 &&
+		threadCount != 2 &&
+		threadCount != 4 &&
+		threadCount != 8 &&
+		threadCount != 16 {
+		fmt.Printf(os.Args[1] + " Please select threadCount from 1, 2, 4, 8, 16\n")
 		return
 	}
 
 	// マルチスレッド処理／直列処理の選択
-	use_multiThread := true
-	if len(os.Args) >= 3 {
-		workStr := strings.ToUpper(os.Args[2])
+	enableMultiThread := true
+	if len(os.Args) > 3 {
+		workStr := strings.ToUpper(os.Args[3])
 		if workStr == "TRUE" {
-			use_multiThread = true
+			enableMultiThread = true
 		} else if workStr == "FALSE" {
-			use_multiThread = false
+			enableMultiThread = false
 		} else {
-			fmt.Printf("\"" + os.Args[2] + "\" is Invalid.\n")
+			fmt.Printf("\"" + os.Args[3] + "\" is Invalid.\n")
 			fmt.Printf("use_mutiThread ... [TRUE | FALSE]\n")
-			print_msg_and_exit()
+			printMsgAndExit()
 		}
 	}
 
 	// 検索する最大文字列長の指定チェック
-	var search_max_length int
-	if len(os.Args) >= 4 {
-		search_max_length, err := strconv.Atoi(os.Args[3])
-		if err == nil {
-			fmt.Printf(os.Args[3] + " in not numeric.\n")
+	searchMaxLength := 256
+	if len(os.Args) > 4 {
+		searchMaxLength, err = strconv.Atoi(os.Args[4])
+		if err != nil {
+			fmt.Printf(os.Args[4] + " in not numeric.\n")
 			return
 		}
-		if search_max_length < 1 || search_max_length > 255 {
-			fmt.Printf(os.Args[3] + " is not 0 - 255\n")
+		if searchMaxLength < 1 || searchMaxLength > 255 {
+			fmt.Printf(os.Args[4] + " is not 0 - 255\n")
 			return
 		}
 	} else {
-		search_max_length = 256
+		searchMaxLength = 256
 	}
 
 	// デバッグ出力の有効／無効
-	var use_debug bool
-	if len(os.Args) >= 5 {
-		workStr := strings.ToUpper(os.Args[4])
+	enableDebug := false
+	if len(os.Args) > 5 {
+		workStr := strings.ToUpper(os.Args[5])
 		if workStr == "TRUE" {
-			use_debug = true
+			enableDebug = true
 		} else if workStr == "FALSE" {
-			use_debug = false
+			enableDebug = false
 		} else {
-			fmt.Printf("\"" + os.Args[2] + "\" is Invalid.\n")
-			fmt.Printf("use_debug ... [TRUE | FALSE]\n")
-			print_msg_and_exit()
+			fmt.Printf("\"" + os.Args[5] + "\" is Invalid.\n")
+			fmt.Printf("enableDebug ... [TRUE | FALSE]\n")
+			printMsgAndExit()
 		}
 	}
 
-	MySolutionMain(open_FileName, thread_num, search_max_length, 0, use_multiThread, use_debug)
+	MySolutionMain(openFileName, threadCount, searchMaxLength, 0, enableMultiThread, enableDebug)
 }
 
-func print_msg_and_exit() {
-	fmt.Printf("\nUsage: go run <testdata.txt> <thread_count> [use_multiThread] [search_max_length] [debug]")
+func printMsgAndExit() {
+	fmt.Printf("\nUsage: go run <testdata.txt> <thread_count> [enableMultiThread] [searchMaxLength] [debug]")
 	os.Exit(1)
 }
 
-func Exists(name string) bool {
+func exists(name string) bool {
 	_, err := os.Stat(name)
 	return !os.IsNotExist(err)
 }

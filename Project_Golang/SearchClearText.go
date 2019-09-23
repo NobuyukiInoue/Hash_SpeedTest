@@ -7,50 +7,51 @@ import (
 	"unsafe"
 )
 
-/// 元の文字列（平文）候補を生成し、ハッシュ文字列と比較処理を行うモジュール
+// 元の文字列（平文）候補を生成し、ハッシュ文字列と比較処理を行うモジュール
 
-/// デバッグ出力の可否
-var output_clearTextList bool
+// 各スレッド処理終了時結果格納用構造体
+type resultSet struct {
+	str    string
+	length int
+}
 
-/// 処理済み平文の出力用文字列（デバッグ用）
+// デバッグ出力の可否
+var enableClearTextList bool
+
+// 処理済み平文の出力用文字列（デバッグ用）
 var clearTextList []byte
 
-/// マルチスレッド処理の可否
+// マルチスレッド処理の可否
 var useMultiThread bool
 
-/// ハッシュ処理用クラスのインスタンス
-//private ComputeHash computeHash = new ComputeHash();
+// 検索対象のハッシュ後文字列
+var targetHashedtr string
 
-/// 各スレッド処理終了時結果文字列
-var resultStr []string
-
-/// 検索対象のハッシュ後文字列
-var target_HashedBytes [32]byte
-
-/// 元の文字列の候補
+// 元の文字列の候補
 var srcStr [][]byte
 
-/// 元の文字列の候補（代入前）
+// 元の文字列の候補（代入前）
 var chr [][]byte
 
-/// 選択したスレッド数のインデックス番号
+// 選択したスレッド数のインデックス番号
 var selectIndex int
 
-/// 検索対象文字のコードを格納する配列
+// 検索対象文字のコードを格納する配列
 var targetChars []byte
 
-/// 検索範囲先頭文字
+// 検索範囲先頭文字
 var chrStart [][]int
 
-/// 検索範囲末尾文字
+// 検索範囲末尾文字
 var chrEnd [][]int
 
-/// 選択したアルゴリズムのインデックス番号
-var Algorithm_Index int
+// AlgorithmIndex ... 選択したアルゴリズムのインデックス番号
+var AlgorithmIndex int
 
-func SearchClearText(alg_index int, targetStr string, strLen int, threadMax int, mode int, use_multiThread bool, use_debug bool) {
-	output_clearTextList = use_debug
-	useMultiThread = use_multiThread
+// InitSearchClearText ... 総当たり平文検索
+func InitSearchClearText(AlgIndex int, targetStr string, strLen int, threadMax int, mode int, enableMultiThread bool, enableDebug bool) {
+	enableClearTextList = enableDebug
+	useMultiThread = enableMultiThread
 
 	srcStr = make([][]byte, threadMax)
 	chr = make([][]byte, threadMax)
@@ -61,7 +62,7 @@ func SearchClearText(alg_index int, targetStr string, strLen int, threadMax int,
 	}
 
 	// 選択したアルゴリズムのインデックス番号
-	Algorithm_Index = alg_index
+	AlgorithmIndex = AlgIndex
 
 	// 選択したスレッド数のインデックス番号の指定（配列の選択)
 	switch threadMax {
@@ -81,18 +82,18 @@ func SearchClearText(alg_index int, targetStr string, strLen int, threadMax int,
 	}
 
 	// ハッシュ後の検索対象文字列をセット
-	target_HashedBytes = string_to_bytes(targetStr)
+	targetHashedtr = targetStr
 
 	// 検索範囲配列の初期化
-	targetChars_Init(mode)
+	targetCharsInit(mode)
 }
 
 //-----------------------------------------------------------------------------//
 // 検索対象文字を配列にセットする。
 //-----------------------------------------------------------------------------//
-func targetChars_Init(mode int) {
+func targetCharsInit(mode int) {
 	// 検索範囲配列の初期化
-	chr_StartEnd_Init()
+	chrStartEndInit()
 
 	switch mode {
 	case 0:
@@ -125,13 +126,13 @@ func targetChars_Init(mode int) {
 	}
 
 	// 検索範囲配列の初期化
-	chr_StartEnd_Set()
+	chrStartEndSet()
 }
 
 //-----------------------------------------------------------------------------//
 // 検索範囲配列の初期化
 //-----------------------------------------------------------------------------//
-func chr_StartEnd_Init() {
+func chrStartEndInit() {
 	chrStart = make([][]int, 5)
 	chrEnd = make([][]int, 5)
 
@@ -151,7 +152,7 @@ func chr_StartEnd_Init() {
 //-----------------------------------------------------------------------------//
 // 各スレッドごとの対象範囲のセット
 //-----------------------------------------------------------------------------//
-func chr_StartEnd_Set() {
+func chrStartEndSet() {
 	//-------------------------------------------------------------------------//
 	// スレッド数が１のときの開始・終了文字
 	//-------------------------------------------------------------------------//
@@ -238,7 +239,7 @@ func chr_StartEnd_Set() {
 //-------------------------------------------------------------------//
 // 開始位置、終了位置の確認
 //-------------------------------------------------------------------//
-func display_chrStartEnd() {
+func displaychrStartEnd() {
 	fmt.Printf("\nlen(targetChars) = " + strconv.Itoa(len(targetChars)) + "\n")
 
 	for rows := 0; rows < len(chrStart); rows++ {
@@ -253,26 +254,46 @@ func display_chrStartEnd() {
 	}
 }
 
-//-------------------------------------------------------------------//
+// GetClearText ...
 // 元の文字列総当たり検索
-//-------------------------------------------------------------------//
-func Get_ClearText(threadMax int) [32]byte {
+// 見つからなかった場合は、("", -1)を返す
+func GetClearText(threadMax int) (string, int) {
 	//-------------------------------------------------------------------------//
 	// 平文が""かどうかを判定する。
 	//-------------------------------------------------------------------------//
-	if target_HashedBytes == ComputeHash_Common(Algorithm_Index, string_to_bytes("")) {
-		return string_to_bytes32("")
+	//if targetHashedtr == ComputeHashCommon(AlgorithmIndex, "") {
+	res := ComputeHashCommon(AlgorithmIndex, "")
+	if targetHashedtr == res {
+		return "", 0
 	}
 
 	//-------------------------------------------------------------------------//
-	// 平文が１文字以上の文字列の場合
+	// 結果格納用構造体の確保
 	//-------------------------------------------------------------------------//
-	resultStr := make([][]byte, threadMax)
+	results := make([]resultSet, threadMax)
 
 	if useMultiThread {
 		//---------------------------------------------------------------------//
 		// スレッド生成
 		//---------------------------------------------------------------------//
+		for threadNum := 0; threadNum < threadMax; threadNum++ {
+			// 指定したアルゴリズムにてハッシュ値を生成する。
+			if GetNextClearTextGroupAll(threadNum, 0) {
+				//-----------------------------------------------------------//
+				// 同じハッシュ値が生成できる元の文字列が見つかった場合
+				//-----------------------------------------------------------//
+				clearTextBytes := make([]byte, len(srcStr[threadNum]))
+				for i := 0; i < len(srcStr[threadNum]); i++ {
+					clearTextBytes[i] = srcStr[threadNum][i]
+				}
+
+				results[threadNum].str = *(*string)(unsafe.Pointer(&clearTextBytes))
+				results[threadNum].length = len(results[threadNum].str)
+			} else {
+				results[threadNum].str = ""
+				results[threadNum].length = -1
+			}
+		}
 
 	} else {
 		//---------------------------------------------------------------------//
@@ -280,61 +301,62 @@ func Get_ClearText(threadMax int) [32]byte {
 		//---------------------------------------------------------------------//
 		for threadNum := 0; threadNum < threadMax; threadNum++ {
 			// 指定したアルゴリズムにてハッシュ値を生成する。
-			if Get_NextClearText_Group_All(threadNum, 0) {
+			if GetNextClearTextGroupAll(threadNum, 0) {
 				//-----------------------------------------------------------//
 				// 同じハッシュ値が生成できる元の文字列が見つかった場合
 				//-----------------------------------------------------------//
-				ClearText := make([]byte, len(srcStr[threadNum]))
+				clearTextBytes := make([]byte, len(srcStr[threadNum]))
 				for i := 0; i < len(srcStr[threadNum]); i++ {
-					ClearText[i] = srcStr[threadNum][i]
+					clearTextBytes[i] = srcStr[threadNum][i]
 				}
 
-				resultStr[threadNum] = ClearText
+				results[threadNum].str = *(*string)(unsafe.Pointer(&clearTextBytes))
+				results[threadNum].length = len(results[threadNum].str)
 			} else {
-				resultStr[threadNum] = nil
+				results[threadNum].str = ""
+				results[threadNum].length = -1
 			}
 		}
 	}
+
 	//-------------------------------------------------------------------------//
-	// 指定文字数での結果報告
+	// 指定文字数での結果報告（並列処理を考慮して無限ループ）
 	//-------------------------------------------------------------------------//
 	for true {
 		resultCount := 0
 
 		for i := 0; i < threadMax; i++ {
-			if resultStr[i] != nil {
-				if len(resultStr[i]) > 0 {
-					// デバッグ用出力
-					if output_clearTextList {
-						save_clearTextList()
-					}
-
-					// いずれかのスレッドが文字列を返してきた場合（見つかった場合）
-					return ([32]byte)(resultStr[i])
-				} else {
-					resultCount++
-
-					if resultCount >= threadMax {
-						// デバッグ用出力
-						if output_clearTextList {
-							save_clearTextList()
-						}
-
-						// すべて""だった場合（見つからなかった場合）
-						return nil
-					}
+			if results[i].length >= 0 {
+				// デバッグ用出力
+				if enableClearTextList {
+					saveClearTextList()
 				}
+
+				// いずれかのスレッドが文字列を返してきた場合（見つかった場合）
+				return results[i].str, results[i].length
+
+			}
+
+			resultCount++
+
+			if resultCount >= threadMax {
+				// デバッグ用出力
+				if enableClearTextList {
+					saveClearTextList()
+				}
+
+				// すべて""だった場合（見つからなかった場合）
+				return "", -1
 			}
 		}
 	}
 
-	return nil
+	return "", -1
 }
 
-//-------------------------------------------------------------------//
+// saveClearTextList ...
 // 検索した平文リストのファイルへの保存
-//-------------------------------------------------------------------//
-func save_clearTextList() {
+func saveClearTextList() {
 	file, err := os.Create("ClearTextList_" + strconv.Itoa(len(srcStr[0])) + ".txt")
 	if err != nil {
 		// Openエラー処理
@@ -344,26 +366,24 @@ func save_clearTextList() {
 	file.Write(clearTextList)
 }
 
-//-------------------------------------------------------------------//
+// GetNextClearTextGroupAll ...
 // 当該階層の平文候補を生成しハッシュ値と比較する。
 // 見つからなければ次の階層へ。
-//-------------------------------------------------------------------//
-// Get_NextClearText_Group_All(threadNum, srcStr, chr, 0) {
-func Get_NextClearText_Group_All(threadNum int, target_strLength int) bool {
+func GetNextClearTextGroupAll(threadNum int, targetStrLength int) bool {
 	// 文字列の長さの上限を超えた場合は中止する。
-	if target_strLength > len(chr[threadNum])-1 {
+	if targetStrLength > len(chr[threadNum])-1 {
 		return false
 	}
 
 	srcStr[threadNum] = chr[threadNum]
 
-	// まずは文字列長iの候補をチェック
+	// まずは文字列長targetStrLengthの候補をチェック
 	for index := chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++ {
-		chr[threadNum][target_strLength] = targetChars[index]
-		srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength]
+		chr[threadNum][targetStrLength] = targetChars[index]
+		srcStr[threadNum][targetStrLength] = chr[threadNum][targetStrLength]
 
 		// デバッグ用出力
-		if output_clearTextList {
+		if enableClearTextList {
 			clearTextList = append(clearTextList, '"')
 			for i := 0; i < len(srcStr[threadNum]); i++ {
 				clearTextList = append(clearTextList, srcStr[threadNum][i])
@@ -374,16 +394,19 @@ func Get_NextClearText_Group_All(threadNum int, target_strLength int) bool {
 		}
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
-		if target_HashedBytes == ComputeHash_Common(Algorithm_Index, srcStr[threadNum]) {
+		//if targetHashedtr == ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum]) {
+		res := ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
+		if targetHashedtr == res {
+
 			return true
 		}
 	}
 
-	// 文字列長i + 1の候補をチェック
+	// 文字列長targetStrLength + 1の候補をチェック
 	for index := chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++ {
-		chr[threadNum][target_strLength] = targetChars[index]
+		chr[threadNum][targetStrLength] = targetChars[index]
 
-		if Get_NextClearText_Group_All_level2(threadNum, target_strLength+1) {
+		if GetNextClearTextGroupAllLevel2(threadNum, targetStrLength+1) {
 			return true
 		}
 	}
@@ -391,29 +414,29 @@ func Get_NextClearText_Group_All(threadNum int, target_strLength int) bool {
 	return false
 }
 
-//-------------------------------------------------------------------//
+// GetNextClearTextGroupAllLevel2 ...
 // 当該階層の平文候補を生成しハッシュ値と比較する。
 // 見つからなければ次の階層へ。
 //-------------------------------------------------------------------//
-func Get_NextClearText_Group_All_level2(threadNum int, target_strLength int) bool {
+func GetNextClearTextGroupAllLevel2(threadNum int, targetStrLength int) bool {
 	// 文字列の長さの上限を超えた場合は中止する。
-	if target_strLength > len(chr[threadNum])-1 {
+	if targetStrLength > len(chr[threadNum])-1 {
 		return false
 	}
 
-	srcStr[threadNum] = make([]byte, target_strLength+1)
+	srcStr[threadNum] = make([]byte, targetStrLength+1)
 
-	for col := 0; col < target_strLength; col++ {
+	for col := 0; col < targetStrLength; col++ {
 		srcStr[threadNum][col] = chr[threadNum][col]
 	}
 
-	// まずは文字列長iの候補をチェック
+	// まずは文字列長targetStrLengthの候補をチェック
 	for index := chrStart[0][0]; index < chrEnd[0][0]; index++ {
-		chr[threadNum][target_strLength] = targetChars[index]
-		srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength]
+		chr[threadNum][targetStrLength] = targetChars[index]
+		srcStr[threadNum][targetStrLength] = chr[threadNum][targetStrLength]
 
 		// デバッグ用出力
-		if output_clearTextList {
+		if enableClearTextList {
 			clearTextList = append(clearTextList, '"')
 			for i := 0; i < len(srcStr[threadNum]); i++ {
 				clearTextList = append(clearTextList, srcStr[threadNum][i])
@@ -424,16 +447,17 @@ func Get_NextClearText_Group_All_level2(threadNum int, target_strLength int) boo
 		}
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
-		if target_HashedBytes == ComputeHash_Common(Algorithm_Index, srcStr[threadNum]) {
+		res := ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
+		if targetHashedtr == res {
 			return true
 		}
 	}
 
-	// 文字列長i + 1の候補をチェック
+	// 文字列長targetStrLength + 1の候補をチェック
 	for index := chrStart[0][0]; index < chrEnd[0][0]; index++ {
-		chr[threadNum][target_strLength] = targetChars[index]
+		chr[threadNum][targetStrLength] = targetChars[index]
 
-		if Get_NextClearText_Group_All_level2(threadNum, target_strLength+1) {
+		if GetNextClearTextGroupAllLevel2(threadNum, targetStrLength+1) {
 			return true
 		}
 	}
@@ -444,7 +468,7 @@ func Get_NextClearText_Group_All_level2(threadNum int, target_strLength int) boo
 //-------------------------------------------------------------------//
 // 指定した文字(byte型)が、targetChars[]の何番目かを調べる
 //-------------------------------------------------------------------//
-func get_index_targetChars(val byte) int {
+func getIndexTargetChars(val byte) int {
 	for i := 0; i < len(targetChars); i++ {
 		if val == targetChars[i] {
 			return i
@@ -456,27 +480,27 @@ func get_index_targetChars(val byte) int {
 //-------------------------------------------------------------------//
 // []byte を string にキャストする
 //-------------------------------------------------------------------//
-func byte_to_string(b []byte) string {
+func byteToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
 //-------------------------------------------------------------------//
 // [32]byte を string にキャストする
 //-------------------------------------------------------------------//
-func byte32_to_string(b [32]byte) string {
+func byte32ToString(b [32]byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
 //-------------------------------------------------------------------//
 // string を []byte にキャストする
 //-------------------------------------------------------------------//
-func string_to_bytes(s string) []byte {
+func stringToBytes(s string) []byte {
 	return *(*[]byte)(unsafe.Pointer(&s))
 }
 
 //-------------------------------------------------------------------//
 // string を [32]byte にキャストする
 //-------------------------------------------------------------------//
-func string_to_bytes32(s string) [32]byte {
+func stringToBytes32(s string) [32]byte {
 	return *(*[32]byte)(unsafe.Pointer(&s))
 }
