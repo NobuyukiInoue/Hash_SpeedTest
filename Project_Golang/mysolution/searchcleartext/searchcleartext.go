@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"unsafe"
 
 	"./computehash"
@@ -27,7 +28,7 @@ var clearTextList []byte
 var useMultiThread bool
 
 // 検索対象のハッシュ後文字列
-var targetHashedtr string
+var targetHashedStr string
 
 // 元の文字列の候補
 var srcStr [][]byte
@@ -84,7 +85,7 @@ func InitSearchClearText(AlgIndex int, targetStr string, strLen int, threadMax i
 	}
 
 	// ハッシュ後の検索対象文字列をセット
-	targetHashedtr = targetStr
+	targetHashedStr = targetStr
 
 	// 検索範囲配列の初期化
 	targetCharsInit(mode)
@@ -263,61 +264,41 @@ func GetClearText(threadMax int) (string, int) {
 	//-------------------------------------------------------------------------//
 	// 平文が""かどうかを判定する。
 	//-------------------------------------------------------------------------//
-	//if targetHashedtr == ComputeHashCommon(AlgorithmIndex, "") {
+	//if targetHashedStr == ComputeHashCommon(AlgorithmIndex, "") {
 	res := computehash.ComputeHashCommon(AlgorithmIndex, "")
-	if targetHashedtr == res {
+	if targetHashedStr == res {
 		return "", 0
 	}
 
 	//-------------------------------------------------------------------------//
-	// 結果格納用構造体の確保
+	// 結果格納用構造体の確保と初期化
 	//-------------------------------------------------------------------------//
 	results := make([]resultSet, threadMax)
+
+	for i := 0; i < len(results); i++ {
+		results[i].str = ""
+		results[i].length = -1
+	}
 
 	if useMultiThread {
 		//---------------------------------------------------------------------//
 		// スレッド生成
 		//---------------------------------------------------------------------//
+		wg := new(sync.WaitGroup)
 		for threadNum := 0; threadNum < threadMax; threadNum++ {
-			// 指定したアルゴリズムにてハッシュ値を生成する。
-			if GetNextClearTextGroupAll(threadNum, 0) {
-				//-----------------------------------------------------------//
-				// 同じハッシュ値が生成できる元の文字列が見つかった場合
-				//-----------------------------------------------------------//
-				clearTextBytes := make([]byte, len(srcStr[threadNum]))
-				for i := 0; i < len(srcStr[threadNum]); i++ {
-					clearTextBytes[i] = srcStr[threadNum][i]
-				}
-
-				results[threadNum].str = *(*string)(unsafe.Pointer(&clearTextBytes))
-				results[threadNum].length = len(results[threadNum].str)
-			} else {
-				results[threadNum].str = ""
-				results[threadNum].length = -1
-			}
+			wg.Add(1)
+			// スレッド別ハッシュ文字列照合処理
+			go thread_func(wg, threadNum, results)
 		}
+		wg.Wait()
 
 	} else {
 		//---------------------------------------------------------------------//
 		// 直列実行
 		//---------------------------------------------------------------------//
 		for threadNum := 0; threadNum < threadMax; threadNum++ {
-			// 指定したアルゴリズムにてハッシュ値を生成する。
-			if GetNextClearTextGroupAll(threadNum, 0) {
-				//-----------------------------------------------------------//
-				// 同じハッシュ値が生成できる元の文字列が見つかった場合
-				//-----------------------------------------------------------//
-				clearTextBytes := make([]byte, len(srcStr[threadNum]))
-				for i := 0; i < len(srcStr[threadNum]); i++ {
-					clearTextBytes[i] = srcStr[threadNum][i]
-				}
-
-				results[threadNum].str = *(*string)(unsafe.Pointer(&clearTextBytes))
-				results[threadNum].length = len(results[threadNum].str)
-			} else {
-				results[threadNum].str = ""
-				results[threadNum].length = -1
-			}
+			// ブロック別ハッシュ文字列照合処理
+			thread_func(nil, threadNum, results)
 		}
 	}
 
@@ -354,6 +335,31 @@ func GetClearText(threadMax int) (string, int) {
 	}
 
 	return "", -1
+}
+
+// thread_func ...
+// スレッド別検索処理
+func thread_func(wg *sync.WaitGroup, threadNum int, results []resultSet) {
+	// 指定したアルゴリズムにてハッシュ値を生成する。
+	if GetNextClearTextGroupAll(threadNum, 0) {
+		//-----------------------------------------------------------//
+		// 同じハッシュ値が生成できる元の文字列が見つかった場合
+		//-----------------------------------------------------------//
+		clearTextBytes := make([]byte, len(srcStr[threadNum]))
+		for i := 0; i < len(srcStr[threadNum]); i++ {
+			clearTextBytes[i] = srcStr[threadNum][i]
+		}
+
+		results[threadNum].str = *(*string)(unsafe.Pointer(&clearTextBytes))
+		results[threadNum].length = len(results[threadNum].str)
+	} else {
+		results[threadNum].str = ""
+		results[threadNum].length = -1
+	}
+
+	if useMultiThread {
+		defer wg.Done()
+	}
 }
 
 // saveClearTextList ...
@@ -396,10 +402,7 @@ func GetNextClearTextGroupAll(threadNum int, targetStrLength int) bool {
 		}
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
-		//if targetHashedtr == ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum]) {
-		res := computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
-		if targetHashedtr == res {
-
+		if targetHashedStr == computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum]) {
 			return true
 		}
 	}
@@ -412,7 +415,6 @@ func GetNextClearTextGroupAll(threadNum int, targetStrLength int) bool {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -449,8 +451,7 @@ func GetNextClearTextGroupAllLevel2(threadNum int, targetStrLength int) bool {
 		}
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
-		res := computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum])
-		if targetHashedtr == res {
+		if targetHashedStr == computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum]) {
 			return true
 		}
 	}
@@ -463,7 +464,6 @@ func GetNextClearTextGroupAllLevel2(threadNum int, targetStrLength int) bool {
 			return true
 		}
 	}
-
 	return false
 }
 

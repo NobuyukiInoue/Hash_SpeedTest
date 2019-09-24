@@ -288,17 +288,17 @@ class SearchClearText:
     # 当該階層の平文候補を生成しハッシュ値と比較する。
     # 見つからなければ次の階層へ。
     #-------------------------------------------------------------------#
-    def Get_NextClearText_Group_All(self, threadNum, i):
+    def Get_NextClearText_Group_All(self, threadNum, targetStrLength):
         # 文字列の長さの上限を超えた場合は中止する。
         if i > len(self.chr[threadNum]) - 1:
             return False
 
         self.srcStr[threadNum] = self.chr[threadNum]
 
-        # まずは文字列長iの候補をチェック
+        # まずは文字列長targetStrLengthの候補をチェック
         for index in range(self.chrStart[self.selectIndex][threadNum], self.chrEnd[self.selectIndex][threadNum]):
-            self.chr[threadNum][i] = self.targetChars[index]
-            self.srcStr[threadNum][i] = self.chr[threadNum][i]
+            self.chr[threadNum][targetStrLength] = self.targetChars[index]
+            self.srcStr[threadNum][targetStrLength] = self.chr[threadNum][targetStrLength]
 
             # デバッグ用出力
             if self.output_clearTextList:
@@ -308,11 +308,11 @@ class SearchClearText:
             if self.target_HashedStr == self.ch.ComputeHash_Common(self.Algorithm_Index, self.bytes_array_to_bytes(self.srcStr[threadNum])):
                 return True
 
-        # 文字列長i + 1の候補をチェック
+        # 文字列長targetStrLength + 1の候補をチェック
         for index in range(self.chrStart[self.selectIndex][threadNum], self.chrEnd[self.selectIndex][threadNum]):
-            self.chr[threadNum][i] = self.targetChars[index]
+            self.chr[threadNum][targetStrLength] = self.targetChars[index]
 
-            if self.Get_NextClearText_Group_All_level2(threadNum, i + 1):
+            if self.Get_NextClearText_Group_All_level2(threadNum, targetStrLength + 1):
                 return True
 
         return False
@@ -322,20 +322,20 @@ class SearchClearText:
     # 当該階層の平文候補を生成しハッシュ値と比較する。
     # 見つからなければ次の階層へ。
     #-------------------------------------------------------------------#
-    def Get_NextClearText_Group_All_level2(self, threadNum, i):
+    def Get_NextClearText_Group_All_level2(self, threadNum, targetStrLength):
         # 文字列の長さの上限を超えた場合は中止する。
         if i > len(self.chr[threadNum]) - 1:
             return False
 
-        self.srcStr[threadNum] = [0]*(i + 1)
+        self.srcStr[threadNum] = [0]*(targetStrLength + 1)
 
-        for col in range(0, i):
+        for col in range(0, targetStrLength):
             self.srcStr[threadNum][col] = self.chr[threadNum][col]
 
         # まずは文字列長iの候補をチェック
         for index in range(self.chrStart[0][0], self.chrEnd[0][0]):
-            self.chr[threadNum][i] = self.targetChars[index]
-            self.srcStr[threadNum][i] = self.chr[threadNum][i]
+            self.chr[threadNum][targetStrLength] = self.targetChars[index]
+            self.srcStr[threadNum][targetStrLength] = self.chr[threadNum][targetStrLength]
 
             # デバッグ用出力
             if self.output_clearTextList:
@@ -345,11 +345,11 @@ class SearchClearText:
             if self.target_HashedStr == self.ch.ComputeHash_Common(self.Algorithm_Index, self.bytes_array_to_bytes(self.srcStr[threadNum])):
                 return True
 
-        # 文字列長i + 1の候補をチェック
+        # 文字列長targetStrLength + 1の候補をチェック
         for index in range(self.chrStart[0][0], self.chrEnd[0][0]):
-            self.chr[threadNum][i] = self.targetChars[index]
+            self.chr[threadNum][targetStrLength] = self.targetChars[index]
 
-            if self.Get_NextClearText_Group_All_level2(threadNum, i + 1):
+            if self.Get_NextClearText_Group_All_level2(threadNum, targetStrLength + 1):
                 return True
 
         return False

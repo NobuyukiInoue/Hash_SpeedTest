@@ -10,11 +10,6 @@ import (
 )
 
 func main() {
-	fmt.Printf("argc = %d\n", len(os.Args))
-	for i := 0; i < len(os.Args); i++ {
-		fmt.Printf("%d ... \"%s\"\n", i, os.Args[i])
-	}
-
 	if len(os.Args) < 3 {
 		printMsgAndExit()
 	}

@@ -36,7 +36,9 @@ func Start(openFileName string, threadCount int, searchMaxLength int, searchMode
 	flds := strings.Split(temp, ":")
 
 	algorithm := flds[0]
-	targetHashedText := strings.Trim(flds[1], "\n")
+	targetHashedText := strings.Replace(flds[1], " ", "", -1)
+	targetHashedText = strings.Replace(targetHashedText, "\r", "", -1)
+	targetHashedText = strings.Replace(targetHashedText, "\n", "", -1)
 
 	// 検索する平文の最大文字列長
 	ClearTextMaxLength = searchMaxLength
@@ -131,7 +133,4 @@ func search(targetHashedText string, algorithm string, threadMax int, searchMaxL
 			fmt.Println(timeformatter.TsFormat(ts) + " ... " + strconv.Itoa(targetStrLength) + "文字の組み合わせ照合終了")
 		}
 	}
-
-	// 見つからなかった場合
-	fmt.Println("見つかりませんでした。")
 }

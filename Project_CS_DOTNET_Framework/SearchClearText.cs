@@ -419,7 +419,7 @@ namespace Project_CS
             //srcStr[threadNum] = new byte[i + 1];
             srcStr[threadNum] = chr[threadNum];
 
-            // まずは文字列長iの候補をチェック
+            // まずは文字列長target_strLengthの候補をチェック
             for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++)
             {
                 chr[threadNum][target_strLength] = targetChars[index];
@@ -436,7 +436,7 @@ namespace Project_CS
                 }
             }
 
-            // 文字列長i + 1の候補をチェック
+            // 文字列長target_strLength + 1の候補をチェック
             for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++)
             {
                 chr[threadNum][target_strLength] = targetChars[index];
@@ -469,7 +469,7 @@ namespace Project_CS
                 srcStr[threadNum][col] = chr[threadNum][col];
             }
 
-            // まずは文字列長iの候補をチェック
+            // まずは文字列長target_strLengthの候補をチェック
             for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++)
             {
                 chr[threadNum][target_strLength] = targetChars[index];
@@ -486,7 +486,7 @@ namespace Project_CS
                 }
             }
 
-            // 文字列長i + 1の候補をチェック
+            // 文字列長target_strLength + 1の候補をチェック
             for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++)
             {
                 chr[threadNum][target_strLength] = targetChars[index];

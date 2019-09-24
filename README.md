@@ -45,12 +45,14 @@ $ cd Project_Java
 * Windows
 
 ```
-> mingw32make all
+> rm *.class
+> mingw32-make all
 ```
 
 * macOS/Linux
 
 ```
+$ make clean
 $ make all
 ```
 
