@@ -275,48 +275,38 @@ public class SearchClearText {
             //---------------------------------------------------------------------//
             // マルチスレッド処理の場合
             //---------------------------------------------------------------------//
-            Collection<Integer> elems = new LinkedList<Integer>();
-            for (int i = 0; i < threadMax; ++i) {
-                elems.add(i);
+            class MyThread extends Thread {
+                int threadNum;
+                public MyThread(int threadNum) {
+                    this.threadNum = threadNum;
+                }
+                @Override
+                public void run() {
+                    thread_func(threadNum, resultStr);
+                }
             }
 
-            Parallel.For(elems, 
-            // The operation to perform with each item
-            new Parallel.Operation<Integer>() {
-                public void perform(Integer threadNum) {
-                    // 指定したアルゴリズムにてハッシュ値を生成する。
-                    if (Get_NextClearText_Group_All(threadNum, 0)) {
-                        //-----------------------------------------------------------//
-                        // 同じハッシュ値が生成できる元の文字列が見つかった場合
-                        //-----------------------------------------------------------//
-                        String ClearText = "";
-                        for (int i = 0; i < srcStr[threadNum].length; i++) {
-                            ClearText += (char)srcStr[threadNum][i];
-                        }
-                        resultStr[threadNum] = ClearText;
-                    } else {
-                        resultStr[threadNum] = "";
-                    }
-                };
-            });
+            MyThread[] th = new MyThread[threadMax];
+            for (int threadNum = 0; threadNum < threadMax; threadNum++) {
+                th[threadNum] = new MyThread(threadNum);
+                th[threadNum].start();
+            }
+
+            for (int threadNum = 0; threadNum < threadMax; threadNum++) {
+                try {
+                    th[threadNum].join();
+                } catch(InterruptedException e) {
+                    e.printStackTrace();
+                    System.exit(-1);
+                }
+            }
+
         } else {
             //---------------------------------------------------------------------//
             // 直列実行の場合
             //---------------------------------------------------------------------//
-            for (int threadNum = 0; threadNum < threadMax; threadNum++) {  
-                // 指定したアルゴリズムにてハッシュ値を生成する。
-                if (Get_NextClearText_Group_All(threadNum, 0)) {
-                    //-----------------------------------------------------------//
-                    // 同じハッシュ値が生成できる元の文字列が見つかった場合
-                    //-----------------------------------------------------------//
-                    String ClearText = "";
-                    for (int i = 0; i < srcStr[threadNum].length; i++) {
-                        ClearText += (char)srcStr[threadNum][i];
-                    }
-                    resultStr[threadNum] = ClearText;
-                } else {
-                    resultStr[threadNum] = "";
-                }
+            for (int threadNum = 0; threadNum < threadMax; threadNum++) {
+                thread_func(threadNum, resultStr);
             }
         }
 
@@ -349,6 +339,22 @@ public class SearchClearText {
                     }
                 }
             }
+        }
+    }
+
+    private void thread_func(int threadNum, String[] resultStr) {
+        // 指定したアルゴリズムにてハッシュ値を生成する。
+        if (Get_NextClearText_Group_All(threadNum, 0)) {
+            //-----------------------------------------------------------//
+            // 同じハッシュ値が生成できる元の文字列が見つかった場合
+            //-----------------------------------------------------------//
+            String ClearText = "";
+            for (int i = 0; i < srcStr[threadNum].length; i++) {
+                ClearText += (char)srcStr[threadNum][i];
+            }
+            resultStr[threadNum] = ClearText;
+        } else {
+            resultStr[threadNum] = "";
         }
     }
 
