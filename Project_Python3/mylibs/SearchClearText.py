@@ -290,7 +290,7 @@ class SearchClearText:
     #-------------------------------------------------------------------#
     def Get_NextClearText_Group_All(self, threadNum, targetStrLength):
         # 文字列の長さの上限を超えた場合は中止する。
-        if i > len(self.chr[threadNum]) - 1:
+        if targetStrLength > len(self.chr[threadNum]) - 1:
             return False
 
         self.srcStr[threadNum] = self.chr[threadNum]
@@ -324,7 +324,7 @@ class SearchClearText:
     #-------------------------------------------------------------------#
     def Get_NextClearText_Group_All_level2(self, threadNum, targetStrLength):
         # 文字列の長さの上限を超えた場合は中止する。
-        if i > len(self.chr[threadNum]) - 1:
+        if targetStrLength > len(self.chr[threadNum]) - 1:
             return False
 
         self.srcStr[threadNum] = [0]*(targetStrLength + 1)
