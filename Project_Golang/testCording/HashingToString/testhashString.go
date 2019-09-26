@@ -1,4 +1,4 @@
-package main
+package gmain
 
 import (
 	"crypto/md5"

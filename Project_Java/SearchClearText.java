@@ -15,7 +15,7 @@ public class SearchClearText {
 
     /// 各スレッド処理終了時結果文字列
     private String[] resultStr;
-    private String target_HashedStr;
+    private byte[] targetHashedBytes;
 
     /// 元の文字列の候補
     private byte[][] srcStr;
@@ -38,9 +38,9 @@ public class SearchClearText {
     /// 選択したアルゴリズムのインデックス番号
     private int Algorithm_Index;
 
-    public SearchClearText(int alg_index, String targetStr, int strLen, int threadMax, int mode, boolean use_multiThread, boolean use_debug) {
-        output_clearTextList = use_debug;
-        userMultiThread = use_multiThread;
+    public SearchClearText(int alg_index, String targetStr, int strLen, int threadMax, int mode, boolean arg_enableMultiThread, boolean enableDebug) {
+        output_clearTextList = enableDebug;
+        userMultiThread = arg_enableMultiThread;
         srcStr = new byte[threadMax][];
         chr = new byte[threadMax][];
 
@@ -76,7 +76,10 @@ public class SearchClearText {
         }
 
         // ハッシュ後の検索対象文字列をセット
-        target_HashedStr = targetStr;
+        targetHashedBytes = new byte[targetStr.length()/2];
+        for (int i = 0; i < targetStr.length(); i += 2) {
+            targetHashedBytes[i/2] = (byte)(16*charToHex(targetStr.charAt(i)) + charToHex(targetStr.charAt(i+1)));
+        }
 
         // 検索範囲配列の初期化
         targetChars_Init(mode);
@@ -262,7 +265,7 @@ public class SearchClearText {
         //-------------------------------------------------------------------------//
         // 平文が""かどうかを判定する。
         //-------------------------------------------------------------------------//
-        if (target_HashedStr.equals(computeHash.ComputeHash_Common(Algorithm_Index, "".getBytes()))) {
+        if (Arrays.equals(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, "".getBytes()))) {
             return "";
         }
 
@@ -402,7 +405,7 @@ public class SearchClearText {
                 clearTextList += "\"" + (new String(srcStr[threadNum])) + "\"\r\n";
 
             // 指定したアルゴリズムにてハッシュ値を生成する。
-            if (target_HashedStr.equals(computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum]))) {
+            if (Arrays.equals(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum]))) {
                 return (true);
             }
         }
@@ -445,8 +448,8 @@ public class SearchClearText {
                 clearTextList += "\"" + (new String(srcStr[threadNum])) + "\"\r\n";
 
             // 指定したアルゴリズムにてハッシュ値を生成する。
-            if (target_HashedStr.equals(computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum]))) {
-                    return (true);
+            if (Arrays.equals(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum]))) {
+                return (true);
             }
         }
 
@@ -522,5 +525,22 @@ public class SearchClearText {
         }
 
         return 0;
+    }
+
+    //-------------------------------------------------------------------//
+    // 16進数文字列を数値に変換する
+    //-------------------------------------------------------------------//
+    private byte charToHex(char s) {
+        if (0x30 <= s && s <= 0x39) {
+            return (byte)(s - 0x30);
+        } else if (0x41 <= s && s <= 0x46) {
+            return (byte)(s - 55);
+        } else if (0x61 <= s && s <= 0x66) {
+            return (byte)(s - 87);
+        }
+
+        System.out.println("charToHex() Error ...\n"+
+            s +  " is wrong.\n");
+        return (byte)0xff;
     }
 }

@@ -1,6 +1,7 @@
 ﻿package searchcleartext
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,10 +26,10 @@ var enableClearTextList bool
 var clearTextList []byte
 
 // マルチスレッド処理の可否
-var useMultiThread bool
+var enableMultiThread bool
 
 // 検索対象のハッシュ後文字列
-var targetHashedStr string
+var targetHashedBytes []byte
 
 // 元の文字列の候補
 var srcStr [][]byte
@@ -52,9 +53,9 @@ var chrEnd [][]int
 var AlgorithmIndex int
 
 // InitSearchClearText ... 総当たり平文検索
-func InitSearchClearText(AlgIndex int, targetStr string, strLen int, threadMax int, mode int, enableMultiThread bool, enableDebug bool) {
+func InitSearchClearText(AlgIndex int, targetStr string, strLen int, threadMax int, mode int, arg_enableMultiThread bool, enableDebug bool) {
 	enableClearTextList = enableDebug
-	useMultiThread = enableMultiThread
+	enableMultiThread = arg_enableMultiThread
 
 	srcStr = make([][]byte, threadMax)
 	chr = make([][]byte, threadMax)
@@ -85,7 +86,10 @@ func InitSearchClearText(AlgIndex int, targetStr string, strLen int, threadMax i
 	}
 
 	// ハッシュ後の検索対象文字列をセット
-	targetHashedStr = targetStr
+	targetHashedBytes = make([]byte, len(targetStr)/2)
+	for i := 0; i < len(targetStr); i += 2 {
+		targetHashedBytes[i/2] = 16*charToHex((rune)(targetStr[i])) + charToHex((rune)(targetStr[i+1]))
+	}
 
 	// 検索範囲配列の初期化
 	targetCharsInit(mode)
@@ -264,9 +268,9 @@ func GetClearText(threadMax int) (string, int) {
 	//-------------------------------------------------------------------------//
 	// 平文が""かどうかを判定する。
 	//-------------------------------------------------------------------------//
-	//if targetHashedStr == ComputeHashCommon(AlgorithmIndex, "") {
-	res := computehash.ComputeHashCommon(AlgorithmIndex, "")
-	if targetHashedStr == res {
+	//if targetHashedBytes == ComputeHashCommon(AlgorithmIndex, "") {
+	workStr := ""
+	if bytes.Compare(targetHashedBytes, computehash.ComputeHashCommon(AlgorithmIndex, *(*[]byte)(unsafe.Pointer(&workStr)))) == 0 {
 		return "", 0
 	}
 
@@ -280,7 +284,7 @@ func GetClearText(threadMax int) (string, int) {
 		results[i].length = -1
 	}
 
-	if useMultiThread {
+	if enableMultiThread {
 		//---------------------------------------------------------------------//
 		// スレッド生成
 		//---------------------------------------------------------------------//
@@ -357,7 +361,7 @@ func thread_func(wg *sync.WaitGroup, threadNum int, results []resultSet) {
 		results[threadNum].length = -1
 	}
 
-	if useMultiThread {
+	if enableMultiThread {
 		defer wg.Done()
 	}
 }
@@ -402,7 +406,7 @@ func GetNextClearTextGroupAll(threadNum int, targetStrLength int) bool {
 		}
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
-		if targetHashedStr == computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum]) {
+		if bytes.Compare(targetHashedBytes, computehash.ComputeHashCommon(AlgorithmIndex, srcStr[threadNum])) == 0 {
 			return true
 		}
 	}
@@ -451,7 +455,7 @@ func GetNextClearTextGroupAllLevel2(threadNum int, targetStrLength int) bool {
 		}
 
 		// 指定したアルゴリズムにてハッシュ値を生成する。
-		if targetHashedStr == computehash.ComputeHashCommonBytes(AlgorithmIndex, srcStr[threadNum]) {
+		if bytes.Compare(targetHashedBytes, computehash.ComputeHashCommon(AlgorithmIndex, srcStr[threadNum])) == 0 {
 			return true
 		}
 	}
@@ -505,4 +509,21 @@ func stringToBytes(s string) []byte {
 //-------------------------------------------------------------------//
 func stringToBytes32(s string) [32]byte {
 	return *(*[32]byte)(unsafe.Pointer(&s))
+}
+
+//-------------------------------------------------------------------//
+// 16進数文字列を数値に変換する
+//-------------------------------------------------------------------//
+func charToHex(s rune) byte {
+	if 0x30 <= s && s <= 0x39 {
+		return ((byte)(s) - 0x30)
+	} else if 0x41 <= s && s <= 0x46 {
+		return ((byte)(s) - 55)
+	} else if 0x61 <= s && s <= 0x66 {
+		return ((byte)(s) - 87)
+	}
+
+	fmt.Printf("charToHex() Error ...\n"+
+		"%d is wrong.\n", s)
+	return 255
 }

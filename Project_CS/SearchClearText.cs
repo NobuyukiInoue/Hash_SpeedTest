@@ -1,4 +1,6 @@
-﻿using System;
+﻿//#define USING_LINQ
+
+using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,7 +26,7 @@ namespace Project_CS
         private string[] resultStr;
 
         /// 検索対象のハッシュ後文字列
-        private string target_HashedStr;
+        private byte[] targetHashedBytes;
 
         /// 元の文字列の候補
         private byte[][] srcStr;
@@ -88,7 +90,11 @@ namespace Project_CS
             }
 
             // ハッシュ後の検索対象文字列をセット
-            target_HashedStr = targetStr;
+            targetHashedBytes = new byte[targetStr.Length/2];
+            for (int i = 0; i < targetStr.Length; i += 2)
+            {
+                targetHashedBytes[i/2] = (byte)((charToHex(targetStr[i])*16) + charToHex(targetStr[i+1]));
+            }
 
             // 検索範囲配列の初期化
             targetChars_Init(mode);
@@ -285,7 +291,11 @@ namespace Project_CS
             //-------------------------------------------------------------------------//
             // 平文が""かどうかを判定する。
             //-------------------------------------------------------------------------//
-            if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, Encoding.ASCII.GetBytes("")))
+        #if USING_LINQ
+            if (System.Linq.Enumerable.SequenceEqual(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, Encoding.ASCII.GetBytes(""))))
+        #else
+            if (bytesEquals(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, Encoding.ASCII.GetBytes(""))))
+        #endif
             {
                 return ("");
             }
@@ -430,7 +440,11 @@ namespace Project_CS
                     clearTextList += "\"" + System.Text.Encoding.ASCII.GetString(srcStr[threadNum]) + "\"\r\n";
 
                 // 指定したアルゴリズムにてハッシュ値を生成する。
-                if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum]))
+            #if USING_LINQ
+                if (System.Linq.Enumerable.SequenceEqual(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum])))
+            #else
+                if (bytesEquals(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum])))
+            #endif
                 {
                     return (true);
                 }
@@ -480,7 +494,11 @@ namespace Project_CS
                     clearTextList += "\"" + System.Text.Encoding.ASCII.GetString(srcStr[threadNum]) + "\"\r\n";
 
                 // 指定したアルゴリズムにてハッシュ値を生成する。
-                if (target_HashedStr == computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum]))
+            #if USING_LINQ
+                if (System.Linq.Enumerable.SequenceEqual(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum])))
+            #else
+                if (bytesEquals(targetHashedBytes, computeHash.ComputeHash_Common(Algorithm_Index, srcStr[threadNum])))
+            #endif
                 {
                     return (true);
                 }
@@ -565,5 +583,40 @@ namespace Project_CS
 
             return (0);
         }
+
+        //-------------------------------------------------------------------//
+        // 16進数文字列を数値に変換する
+        //-------------------------------------------------------------------//
+        private byte charToHex(char s) {
+            if (0x30 <= s && s <= 0x39) {
+                return (byte)(s - 0x30);
+            } else if (0x41 <= s && s <= 0x46) {
+                return (byte)(s - 55);
+            } else if (0x61 <= s && s <= 0x66) {
+                return (byte)(s - 87);
+            }
+
+            Console.WriteLine("charToHex() Error ...\n"+
+                s +  " is wrong.\n");
+            return (byte)0xff;
+        }
+
+    #if !USING_LINQ
+        private bool bytesEquals(byte[] arr1, byte[] arr2)
+        {
+            if (arr1.Length != arr2.Length) {
+                return false;
+            }
+
+            for (int i = 0; i < arr1.Length; i++) {
+                if (arr1[i] != arr2[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    #endif
+
     }
 }

@@ -45,16 +45,16 @@ public class Main {
         }
 
         // マルチスレッド処理／直列処理の選択
-        boolean use_multiThread = true;
+        boolean enableMultiThread = true;
         if (args.length > 2) {
             String workStr = args[2].toUpperCase();
             if (workStr.equals("TRUE")) {
-                use_multiThread = true;
+                enableMultiThread = true;
             } else if (workStr.equals("FALSE")) {
-                use_multiThread = false;
+                enableMultiThread = false;
             } else {
                 System.out.println("\"" + args[2] + "\" is Invalid.");
-                System.out.println("use_mutiThread ... [TRUE | FALSE]");
+                System.out.println("enableMutiThread ... [TRUE | FALSE]");
                 print_msg_and_exit();
             }
         }
@@ -79,27 +79,27 @@ public class Main {
         }
 
         // デバッグ出力の有効／無効
-        boolean use_debug = false;
+        boolean enableDebug = false;
         if (args.length > 4) {
             String workStr = args[4].toUpperCase();
             if (workStr.equals("TRUE")) {
-                use_debug = true;
+                enableDebug = true;
             } else if (workStr.equals("FALSE")) {
-                use_debug = false;
+                enableDebug = false;
             } else {
                 System.out.println("\"" + args[4] + "\" is Invalid.");
-                System.out.println("use_debug ... [TRUE | FALSE]");
+                System.out.println("enableDebug ... [TRUE | FALSE]");
                 print_msg_and_exit();
             }
         }
 
         MySolution sl = new MySolution();
-        sl.Main(open_FileName, thread_count, search_max_length, 0, use_multiThread, use_debug);
+        sl.Main(open_FileName, thread_count, search_max_length, 0, enableMultiThread, enableDebug);
     }
 
     private static void print_msg_and_exit() {
         final String className = new Object(){}.getClass().getEnclosingClass().getName();
-        System.out.println("\nUsage: java " + className + " <testdata.txt> <thread_count> [use_multiThread] [search_max_length] [debug]");
+        System.out.println("\nUsage: java " + className + " <testdata.txt> <thread_count> [enableMultiThread] [search_max_length] [debug]");
         System.exit(1);
     }
 }

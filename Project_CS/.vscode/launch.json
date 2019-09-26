@@ -13,8 +13,16 @@
             "program": "${workspaceFolder}/bin/Debug/netcoreapp2.0/Project_CS.dll",
             "args": [
                 "../testdata/data_~~~.txt",
-                "4"
+                "4",
+                "false"
             ],
+            /*
+            "args": [
+                "../testdata/data_None.txt",
+                "4",
+                "false"
+            ],
+            */
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
             "console": "internalConsole",
