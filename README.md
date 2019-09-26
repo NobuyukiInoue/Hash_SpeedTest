@@ -63,7 +63,7 @@ $ make all
 $ java Main ../testdata/data_~~~.txt
 ```
 
-## Project for Golang(Not yet complete)
+## Project for Golang
 
 
 ### Change Directory
