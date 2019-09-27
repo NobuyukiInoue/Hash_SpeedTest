@@ -1,0 +1,11 @@
+☆Java　メソッドを変数に格納したい
+https:teratail.com/questions/75762
+
+☆Javaいおける関数ポインタのやり方
+https:itech-program.com/java/51
+
+☆メソッド参照 - Qiita
+https:qiita.com/pepepe/items/3d810e1bbed25768caa0
+
+☆Javaの関数ポインタの最も近い代替は何ですか？
+https:codeday.me/jp/qa/20181127/12340.html
