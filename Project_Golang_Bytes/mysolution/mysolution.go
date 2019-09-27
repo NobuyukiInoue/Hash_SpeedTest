@@ -50,6 +50,7 @@ func Start(openFileName string, threadCount int, searchMaxLength int, searchMode
 	fmt.Println("Date               : " + t.Format(layout))
 	fmt.Println("algorithm          : " + algorithm)
 	fmt.Println("target Hashed Text : " + targetHashedText)
+	fmt.Println("Collation type     : []byte")
 	if enableMuiltiThread {
 		fmt.Println("thread count       : " + strconv.Itoa(threadCount))
 	} else {
@@ -64,7 +65,7 @@ func Start(openFileName string, threadCount int, searchMaxLength int, searchMode
 	search(targetHashedText, algorithm, threadCount, ClearTextMaxLength, searchMode, enableMuiltiThread, enableDebug)
 
 	timeEnd := time.Now()
-	fmt.Printf("Execute time: %.3f [ms]\n\n", timeEnd.Sub(timeStart).Seconds()*1000)
+	fmt.Printf("Execute time: %.3f [s]\n\n", timeEnd.Sub(timeStart).Seconds())
 }
 
 //-----------------------------------------------------------------------------//

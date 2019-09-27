@@ -40,6 +40,7 @@ class MySolution:
                 "Date               : {0}\n"
                 "algorithm          : {1}\n"
                 "target Hashed Text : {2}\n"
+                "Collation type     : []byte\n"
                 "thread count       : {3}\n"
                 "search max length  : {4}\n"
                 "====================================================================================="
@@ -59,7 +60,7 @@ class MySolution:
         self.search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode, use_multiThread, use_debug)
         time1 = time.time()
 
-        print("Execute time ... : {0:f} [ms]\n".format((time1 - time0)*1000))
+        print("Execute time ... : {0:f} [s]\n".format(time1 - time0))
     
 
     def search(self, target_hashed_text, algorithm, threadMax, search_ClearText_MaxLength, search_mode, use_multiThread, use_debug):
