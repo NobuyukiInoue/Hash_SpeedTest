@@ -50,7 +50,7 @@ namespace Project_CS
             search(target_hashed_text, algorithm, thread_count, ClearTextMaxLength, search_mode, use_muiltiThread, use_debug);
 
             sw.Stop();
-            Console.WriteLine("Total Execute time ... " + (sw.ElapsedMilliseconds/1000.0).ToString() + " ms\n");
+            Console.WriteLine("Total Execute time ... " + (sw.ElapsedMilliseconds/1000.0).ToString() + " [s]\n");
         }
 
         //-----------------------------------------------------------------------------//
