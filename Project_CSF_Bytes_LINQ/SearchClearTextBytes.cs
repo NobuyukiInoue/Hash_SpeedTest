@@ -310,33 +310,27 @@ namespace Project_CS
                 //---------------------------------------------------------------------//
                 // スレッド生成
                 //---------------------------------------------------------------------//
-                Task task = Task.Factory.StartNew(() =>
+                Parallel.For(0, threadMax, threadNum =>
                 {
-                    Parallel.For(0, threadMax, threadNum =>
+                    // 指定したアルゴリズムにてハッシュ値を生成する。
+                    if (Get_NextClearText_Group_All(threadNum, 0))
                     {
-                        // 指定したアルゴリズムにてハッシュ値を生成する。
-                        if (Get_NextClearText_Group_All(threadNum, 0))
+                        //-----------------------------------------------------------//
+                        // 同じハッシュ値が生成できる元の文字列が見つかった場合
+                        //-----------------------------------------------------------//
+                        string ClearText = "";
+                        for (int i = 0; i < srcStr[threadNum].Length; i++)
                         {
-                            //-----------------------------------------------------------//
-                            // 同じハッシュ値が生成できる元の文字列が見つかった場合
-                            //-----------------------------------------------------------//
-                            string ClearText = "";
-                            for (int i = 0; i < srcStr[threadNum].Length; i++)
-                            {
-                                ClearText += Convert.ToChar(srcStr[threadNum][i]);
-                            }
+                            ClearText += Convert.ToChar(srcStr[threadNum][i]);
+                        }
 
-                            resultStr[threadNum] = ClearText;
-                        }
-                        else
-                        {
-                            resultStr[threadNum] = "";
-                        }
-                    });
+                        resultStr[threadNum] = ClearText;
+                    }
+                    else
+                    {
+                        resultStr[threadNum] = "";
+                    }
                 });
-
-                // メインスレッド仮待機
-                task.Wait(1);
             }
             else
             {
@@ -365,6 +359,7 @@ namespace Project_CS
                     }
                 }
             }
+
             //-------------------------------------------------------------------------//
             // 指定文字数での結果報告
             //-------------------------------------------------------------------------//
