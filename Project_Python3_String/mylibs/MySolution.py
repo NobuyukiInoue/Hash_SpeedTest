@@ -115,7 +115,7 @@ class MySolution:
                       "\n"
                       "結果 = {0}\n"
                       "\n"
-                      "解析時間 = {1}".format(resultStr, TimeFormatter.format(ts)))
+                      "解析時間 = {1} ( {2} [s] )".format(resultStr, TimeFormatter.format(ts), ts))
                 break
             else:
                 print("{0}  ... {1} 文字の組み合わせ照合終了".format(TimeFormatter.format(ts), i))

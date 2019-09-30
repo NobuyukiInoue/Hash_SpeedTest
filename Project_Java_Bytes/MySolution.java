@@ -157,7 +157,7 @@ public class MySolution {
                                 + "\r\n"
                                 + "Œ‹‰Ê = " + resultStr + "\r\n"
                                 + "\r\n"
-                                + "‰ğÍŠÔ = " + timeformatter.format(ts));
+                                + "‰ğÍŠÔ = " + timeformatter.format(ts) + " ( " + ts/1000.0  + " [s] )\n");
                 break;
 
             } else {

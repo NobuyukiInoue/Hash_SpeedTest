@@ -124,11 +124,11 @@ func search(targetHashedText string, algorithm string, threadMax int, searchMaxL
 		// 文字数iでの総当たり平文検索終了
 		//---------------------------------------------------------------------//
 		if resultStrLen >= 0 {
-			fmt.Println("元の文字列が見つかりました！\r\n" +
+			fmt.Printf("元の文字列が見つかりました！\r\n" +
 				"\r\n" +
-				"結果 = " + resultStr + "\r\n" +
+				"結果 = %s\r\n" +
 				"\r\n" +
-				"解析時間 = " + timeformatter.TsFormat(ts))
+				"解析時間 = %s ( %f [s] )\n", resultStr,  timeformatter.TsFormat(ts), ts)
 			break
 		} else {
 			fmt.Println(timeformatter.TsFormat(ts) + " ... " + strconv.Itoa(targetStrLength) + "文字の組み合わせ照合終了")
