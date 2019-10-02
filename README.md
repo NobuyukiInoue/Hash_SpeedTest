@@ -1,34 +1,39 @@
-# Hash_SpeedTest
+# HashingSpeedTest
 
 # How to Build and Run
 
 
-## Project for Python3
-
-### Change Directory
-```
-$ cd Project_Python3
-```
-
-### Run
-
-```
-$ python Main.py ../testdata/data_~~~.txt 4
-```
-
-## Project for C Sharp (.NET Core 2.0 or Later)
-
+## Project for Golang
 
 ### Change Directory
 
 ```
-$ cd Project_CS
+$ cd /Project_Golang_Bytes
+```
+
+### Run(Golang)
+
+```
+$ go run main.go ../testdata/data_~~~.txt 4
+```
+
+
+## Project for C Sharp (.NET Core 2.x/3.0)
+
+### Change Directory
+
+```
+$ cd Project_CS_DOTNET3.0_Bytes_LINQ
+```
+or
+```
+$ cd Project_CS_DOTNET2.0_Bytes_LINQ
 ```
 
 ### Run(dotnet) [Windows/macOS/Linux]
 
 ```
-> dotnet run ../testdata/data_~~~.txt 4
+> dotnet run -c Release ../testdata/data_~~~.txt 4
 ```
 
 ## Project for Java
@@ -37,12 +42,12 @@ $ cd Project_CS
 ### Change Directory
 
 ```
-$ cd Project_Java
+$ cd Project_Java_Bytes
 ```
 
 ### Build
 
-* Windows
+* Windows(MinGW is required)
 
 ```
 > rm *.class
@@ -57,23 +62,21 @@ $ make all
 ```
 
 
-### Run
+### Run(Java)
 
 ```
 $ java Main ../testdata/data_~~~.txt
 ```
 
-## Project for Golang
-
+## Project for Python3
 
 ### Change Directory
+```
+$ cd Project_Python3_Bytes
+```
+
+### Run(Python3)
 
 ```
-$ cd /Project_Golang
-```
-
-### Run
-
-```
-$ go run main.go ../testdata/data_~~~.txt 4
+$ python Main.py ../testdata/data_~~~.txt 4
 ```
