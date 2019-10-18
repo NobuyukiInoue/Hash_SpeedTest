@@ -1,0 +1,34 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Same_Tree_for_mac",
+            "args": [
+                "../testdata.txt"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            //"externalConsole": true,
+            "externalConsole": false,
+            //"MIMode": "lldb"
+            //"MIMode": "gdb",
+            "linux": {
+                "MIMode": "gdb"
+            },
+            "osx": {
+                //"MIMode": "lldb"
+                "MIMode": "gdb" // デバッガにGDBを使用したい場合。homebrewで brew install gdb で入る
+            },
+            "windows": {
+                "MIMode": "gdb"
+            }
+        }
+    ]
+}
