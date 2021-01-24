@@ -3,17 +3,17 @@
 #include <openssl/sha.h>
 
 int main(int argc, char *argv[]) {
-    char message[65536];
+    char message[256];
     unsigned char digest[SHA256_DIGEST_LENGTH];
 
     while (1) {
         message[0] = '\0';
         printf("message = ");
-        int res = scanf("%s", message);
+        int res = scanf("%255s", message);
         if (res == 0 || message[0] == '\0')
             break;
 
-        printf("message = %s, strlen(message) = %d\n", message, strlen(message));
+        printf("message = %s, strlen(message) = %ld\n", message, strlen(message));
 
         SHA256_CTX sha_ctx;
         SHA256_Init(&sha_ctx); // コンテキストを初期化

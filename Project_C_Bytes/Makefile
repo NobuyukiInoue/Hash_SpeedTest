@@ -1,6 +1,6 @@
 COMPILER=gcc
-CFLAGS=-lcrypto
-CFLAGS_DEBUG=-g -O0 -lcrypto
+CFLAGS=-lcrypto -pthread -lm
+CFLAGS_DEBUG=-g -O0 -lcrypto -pthread -lm
 PROJECT_NAME=main
 
 ifeq ($(OS),Windows_NT)
