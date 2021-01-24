@@ -1,0 +1,2 @@
+char *timeFormatter(double sec);
+
