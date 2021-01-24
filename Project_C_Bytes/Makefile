@@ -14,8 +14,6 @@ ifeq ($(UNAME),Darwin)
 else
 ifeq ($(UNAME),Linux)
 	TARGET_FILE=$(PROJECT_NAME)_for_linux
-#	INCLUDE=-I/usr/include/openssl
-#	LIBS=-L/usr/local/Cellar/openssl@1.1/1.1.1g/lib
 else
 	TARGET_FILE=$(PROJECT_NAME)
 endif
