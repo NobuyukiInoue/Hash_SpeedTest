@@ -1,5 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include "compute_hash_common.h"
 
 unsigned char* compute_hash_common(int algorithmIndex, char *message)

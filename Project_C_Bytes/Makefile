@@ -1,21 +1,29 @@
 COMPILER=gcc
-CFLAGS=-lcrypto -pthread -lm
-CFLAGS_DEBUG=-g -O0 -lcrypto -pthread -lm
 PROJECT_NAME=main
 
 ifeq ($(OS),Windows_NT)
 	TARGET_FILE=$(PROJECT_NAME).exe
+	CFLAGS=-pthread -lm
+	CFLAGS_DEBUG=-g -O0 -pthread -lm
+	INCLUDE=-I"C:\Program Files\OpenSSL-Win64\include"
+	LIBS=-L"C:\Program Files\OpenSSL-Win64\lib"
 else
 UNAME=${shell uname}
 ifeq ($(UNAME),Darwin)
 	TARGET_FILE=$(PROJECT_NAME)_for_mac
+	CFLAGS=-lcrypto -pthread -lm
+	CFLAGS_DEBUG=-g -O0 -lcrypto -pthread -lm
 	INCLUDE=-I/usr/local/Cellar/openssl@1.1/1.1.1g/include
 	LIBS=-L/usr/local/Cellar/openssl@1.1/1.1.1g/lib
 else
 ifeq ($(UNAME),Linux)
 	TARGET_FILE=$(PROJECT_NAME)_for_linux
+	CFLAGS=-lcrypto -pthread -lm
+	CFLAGS_DEBUG=-g -O0 -lcrypto -pthread -lm
 else
 	TARGET_FILE=$(PROJECT_NAME)
+	CFLAGS=-lcrypto -pthread -lm
+	CFLAGS_DEBUG=-g -O0 -lcrypto -pthread -lm
 endif
 endif
 endif
@@ -25,10 +33,10 @@ MYLIBS=mysolutions/mylib.c mysolutions/solution.c mysolutions/compute_hash_commo
 
 all:	$(TARGET_FILE)
 
-$(TARGET_FILE):	$(SOURCE_FILE) $(MYLIB1) $(MYLIB2)
+$(TARGET_FILE):	$(SOURCE_FILE) $(MYLIBS)
 	$(COMPILER) -o$(TARGET_FILE) $(INCLUDE) $(LIBS) $(SOURCE_FILE) $(MYLIBS) $(CFLAGS)
 
-debug:	$(SOURCE_FILE) $(MYLIB1) $(MYLIB2)
+debug:	$(SOURCE_FILE) $(MYLIBS)
 	$(COMPILER) -o$(TARGET_FILE) $(INCLUDE) $(LIBS) $(SOURCE_FILE) $(MYLIBS) $(CFLAGS_DEBUG)
 
 clean:

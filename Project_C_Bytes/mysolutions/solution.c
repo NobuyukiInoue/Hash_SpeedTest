@@ -1,6 +1,3 @@
-#include <stdlib.h>
-#include <time.h>
-
 #include "mylib.h"
 #include "solution.h"
 #include "compute_hash_common.h"
@@ -29,25 +26,21 @@ int solution_start(char *openFileName, int threadCount, int searchMaxLength, int
         if (strchr(line, ':') != NULL) {
             int flds_length = ml_split(line, ":", flds, flds_max_length);
             if (flds_length > 0) {
+                /*
                 for (int i = 0; i < flds_max_length; i++) {
                     printf("flds[%d] = %s\n", i, flds[i]);
                 }
+                */
                 break;
             }
         }
     }
     fclose(fp);
 
-    char *algorithm = flds[0];
-    char *target_hashed_text = flds[1];
-
-    /* hash sample */
-    /*
-    unsigned char *digest = compute_hash_common(2, "Hello");
-    print_digest(digest);
-    */
     time_t timer;
     struct tm *local;
+    char *algorithm = flds[0];
+    char *target_hashed_text = flds[1];
 
     /* 現在時刻を取得 */
     timer = time(NULL);
@@ -131,19 +124,15 @@ void search(char *target_hashed_text, char *algorithm, int threadMax, int ClearT
         clock_t startTime = clock();
 
         //---------------------------------------------------------------------//
-        // 文字数iでの総当たり平文検索開始
+        // 文字数target_strLengthでの総当たり平文検索開始
         //---------------------------------------------------------------------//
         answerStr = get_clearText(threadMax, target_strLength);
 
         // 総当たり平文検索終了時刻との差を取得
         clock_t endTime = clock();
 
-        // 平文作業用配列を解放
-    //  disp_resultStrArray();
-        free_arrays();
-
         //---------------------------------------------------------------------//
-        // 文字数iでの総当たり平文検索終了
+        // 文字数target_strLengthでの総当たり平文検索終了
         //---------------------------------------------------------------------//
         double totalSeconds = (double)(endTime - startTime)/CLOCKS_PER_SEC; 
         if (answerStr != NULL) {

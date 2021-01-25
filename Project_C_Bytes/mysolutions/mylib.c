@@ -1,9 +1,3 @@
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-/* Function prototype declaration */
 #include "mylib.h"
 
 #define MALLOC_STR_SIZE 1024

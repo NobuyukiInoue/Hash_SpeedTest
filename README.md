@@ -3,6 +3,45 @@
 # How to Build and Run
 
 
+## Project for C language
+
+This Project need the OpenSSL Library to build.
+
+#### Ubuntu/Debian
+
+```
+$ sudo apt-get install libssl-dev
+```
+
+### Change Directory
+
+```
+$ cd /Project_C_Bytes
+```
+
+### Build
+
+```
+$ make clean
+$ make
+```
+
+### Run(C language)
+
+
+#### Linux
+
+```
+$ ./main_for_linux ../testdata/data_~~~.txt 4
+```
+
+#### macOS
+
+```
+$ ./main_for_mac ../testdata/data_~~~.txt 4
+```
+
+
 ## Project for Golang
 
 ### Change Directory

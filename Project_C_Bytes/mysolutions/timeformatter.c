@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "timeformatter.h"
 
 char *timeFormatter(double sec)

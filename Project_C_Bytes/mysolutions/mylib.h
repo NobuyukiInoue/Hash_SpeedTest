@@ -1,5 +1,9 @@
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+/* Function prototype declaration */
 void ml_err_exit(char* message);
 int ml_p_char_array_free(char* str_array[], int size);
 void ml_replace(char* buf, const char* str1, const char* str2);

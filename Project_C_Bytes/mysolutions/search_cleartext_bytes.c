@@ -1,23 +1,20 @@
-#include <pthread.h>
-#include <stdio.h>
 #include "search_cleartext_bytes.h"
 
 /// スレッド数上限（chr(), srcStr()の要素数）
 int thread_MAX;
 
-/// 元の文字列（平文）候補を生成し、ハッシュ文字列と比較処理を行うクラス
-/// デバッグ出力の可否
-bool output_clearTextList;
+/// デバッグ情報出力用
+bool ENABLE_DEBUG;
 
-/// 処理済み平文の出力用文字列（デバッグ用）
+/// 処理済み平文の出力用文字列（デバッグ用）(未実装）
 char **clearTextList;
 int clearTextListIndex;
 
 /// マルチスレッド処理の可否
 bool useMultiThread;
 
-/// 各スレッド処理終了時結果文字列（２次元配列）
-char **resultStrArray;
+/// 各スレッド検索結果格納用配列（配列）
+bool *resultTable;
 
 /// 検索対象のハッシュ後文字列
 char *targetHashedBytes;
@@ -43,17 +40,20 @@ int **chrEnd;
 /// 選択したアルゴリズムのインデックス番号
 int Algorithm_Index;
 
+//-----------------------------------------------------------------------------//
+// モジュール内変数初期化処理
+//-----------------------------------------------------------------------------//
 void init_searchClearTextBytes(int alg_index, char *targetStr, int current_strLen, int threadMax, int mode, bool use_multiThread, bool use_debug)
 {
     thread_MAX = threadMax;
-    output_clearTextList = use_debug;
+    ENABLE_DEBUG = use_debug;
     useMultiThread = use_multiThread;
 
     srcStr = (char **)malloc(sizeof(char *)*thread_MAX);
     chr = (char **)malloc(sizeof(char *)*thread_MAX);
     for (int i = 0; i < thread_MAX; i++) {
-            srcStr[i] = (char *)malloc(sizeof(char)*(current_strLen + 1));
-            chr[i] = (char *)malloc(sizeof(char)*(current_strLen + 1));
+        srcStr[i] = (char *)malloc(sizeof(char)*(current_strLen + 1));
+        chr[i] = (char *)malloc(sizeof(char)*(current_strLen + 1));
     }
 
     for (int i = 0; i < thread_MAX; i++) {
@@ -114,7 +114,6 @@ void init_targetChars(int mode)
     switch (mode) {
         case 0: {
             // 英数文字および記号が対象のとき
-            //targetChars = new int[0xff - 0x00];
             targetChars = (char *)malloc(sizeof(char)*(0x7f - 0x20));
 
             int i = 0;
@@ -166,19 +165,6 @@ void init_chr_StartEnd()
     chrEnd[2] = (int *)malloc(sizeof(int)*4);
     chrEnd[3] = (int *)malloc(sizeof(int)*8);
     chrEnd[4] = (int *)malloc(sizeof(int)*16);
-}
-
-//-----------------------------------------------------------------------------//
-// 検索範囲配列の解放
-//-----------------------------------------------------------------------------//
-void free_chr_StartEnd()
-{
-    for (int i = 0; i < 5; i++) {
-        free(chrEnd[i]);
-        free(chrStart[i]);
-    }
-    free(chrEnd);
-    free(chrStart);
 }
 
 //-----------------------------------------------------------------------------//
@@ -300,113 +286,101 @@ char *get_clearText(int threadMax, int target_strLength)
         return ("");
     }
 
+    // デバッグ用出力
+//  disp_arrays();
+
     //-------------------------------------------------------------------------//
     // 平文が１文字以上の文字列の場合
     //-------------------------------------------------------------------------//
-    resultStrArray = (char **)malloc(sizeof(char)*threadMax);
-    for (int i = 0; i < threadMax; i++) {
-        resultStrArray[i] = (char *)malloc(sizeof(char)*(target_strLength + 1));
-    //  printf("resultStrarray[%d]...%lx\n", i, resultStrArray[i]);
-    }
+    resultTable = (bool *)malloc(sizeof(bool)*threadMax);
+    for (int i = 0; i < threadMax; i++) resultTable[i] = false;
 
     if (useMultiThread) {
         //---------------------------------------------------------------------//
         // マルチスレッド処理
         //---------------------------------------------------------------------//
         pthread_t th_table[threadMax];
-        struct thread_args th_data[threadMax];
+        struct func_args th_data[threadMax];
 
         for (int threadNum = 0; threadNum < threadMax; threadNum++) {
             th_data[threadNum].threadNum = threadNum;
 
-            // スレッドを生成
-            pthread_create(&th_table[threadNum], NULL, func_thread, &th_data[threadNum]);
-        }
-            
-        for (int threadNum = 0; threadNum < threadMax; threadNum++) {
+            // スレッドを生成し、総当たりハッシュ処理を実行
+            pthread_create(&th_table[threadNum], NULL, bruteforce_hashing, &th_data[threadNum]);
+
             // スレッドの終了を待機
             pthread_join(th_table[threadNum], NULL);
         }
-
     } else {
         //---------------------------------------------------------------------//
         // 直列実行
         //---------------------------------------------------------------------//
+        struct func_args th_data[threadMax];
+
         for (int threadNum = 0; threadNum < threadMax; threadNum++) {
-            // 指定したアルゴリズムにてハッシュ値を生成する。
-            if (get_NextClearText_Group_All(threadNum, 0)) {
-                //-----------------------------------------------------------//
-                // 同じハッシュ値が生成できる元の文字列が見つかった場合
-                //-----------------------------------------------------------//
-                strcpy(resultStrArray[threadNum], srcStr[threadNum]);
-            } else {
-                strcpy(resultStrArray[threadNum], "");
-            }
+            th_data[threadNum].threadNum = threadNum;
+
+            // 総当たりハッシュ処理を実行
+            bruteforce_hashing(&th_data[threadNum]);
         }
     }
 
     //-------------------------------------------------------------------------//
     // 指定文字数での結果報告
     //-------------------------------------------------------------------------//
-    while (true) {
-        int resultCount = 0;
+    char *answerStr = NULL;
+    int resultCount = 0;
 
-        for (int i = 0; i < threadMax; i++) {
-        //  printf("result ... resultStrarray[%d]...%lx\n", i, resultStrArray[i]);
+    while (answerStr == NULL) {
+        resultCount = 0;
 
-            if (resultStrArray[i] != NULL) {
-                if (strlen(resultStrArray[i]) > 0) {
-                    // デバッグ用出力
-                    if (output_clearTextList)
-                        save_clearTextList();
+        for (int threadNum = 0; threadNum < threadMax; threadNum++) {
+            if (resultTable[threadNum]) {
+                // いずれかのスレッドが文字列を返してきた場合（見つかった場合）
+                answerStr = (char *)malloc(strlen(srcStr[threadNum]) + 1);
+                strcpy(answerStr, srcStr[threadNum]);
+                break;
 
-                    // いずれかのスレッドが文字列を返してきた場合（見つかった場合）
-                    char *answerStr = (char *)malloc(sizeof(char)*(strlen(resultStrArray[i]) + 1));
-                    strcpy(answerStr, resultStrArray[i]);
-                    return answerStr;
-                } else {
-                    resultCount++;
-
-                    if (resultCount >= threadMax) {
-                        // デバッグ用出力
-                        if (output_clearTextList)
-                            save_clearTextList();
-
-                        // すべて""だった場合（見つからなかった場合）
-                        return NULL;
-                    }
-                }
+            } else {
+                resultCount++;
             }
         }
-        return NULL;
+
+        if (resultCount >= threadMax) {
+            if (ENABLE_DEBUG)
+                printf("No Answer\n");
+            break;
+        }
     }
+
+    // 作業用配列を出力
+    if (ENABLE_DEBUG)
+        disp_arrays();
+
+    // 作業用配列を解放
+    free_arrays();
+
+    return answerStr;
 }
 
-void *func_thread(void *args)
+//-------------------------------------------------------------------//
+// 平文総当たりハッシュ処理および照合処理（マルチスレッド処理対応）
+//-------------------------------------------------------------------//
+void *bruteforce_hashing(void *args)
 {
-    struct thread_args *th_data = (struct thread_args *)args;
+    struct func_args *th_data = (struct func_args *)args;
     int threadNum = th_data->threadNum;
+
+    if (ENABLE_DEBUG)
+        printf("thread %d is started.\n", threadNum);
 
     // 指定したアルゴリズムにてハッシュ値を生成する。
     if (get_NextClearText_Group_All(threadNum, 0) == true) {
         //-----------------------------------------------------------//
         // 同じハッシュ値が生成できる元の文字列が見つかった場合
         //-----------------------------------------------------------//
-        strcpy(resultStrArray[threadNum], srcStr[threadNum]);
-    } else {
-        strcpy(resultStrArray[threadNum], "");
+        resultTable[threadNum] = true;
     }
-}
-//-------------------------------------------------------------------//
-// 検索した平文リストのファイルへの保存
-//-------------------------------------------------------------------//
-void save_clearTextList()
-{
-/*
-    StreamWriter sw = new StreamWriter("ClearTextList_" + srcStr[0].Length + ".txt" , false);
-    sw.Write(clearTextList);
-    sw.Close();
-*/
 }
 
 //-------------------------------------------------------------------//
@@ -427,16 +401,6 @@ bool get_NextClearText_Group_All(int threadNum, int target_strLength)
     for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++) {
         chr[threadNum][target_strLength] = targetChars[index];
         srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength];
-
-        // デバッグ用出力
-        if (output_clearTextList) {
-            clearTextList[clearTextListIndex] = (char *)malloc(sizeof(char)*(target_strLength + 1));
-            sprintf(clearTextList[clearTextListIndex], "\"%s\"\r\n", srcStr[threadNum]);
-            clearTextListIndex++;
-        }
-
-        // for debug.
-    //  printf("srcStr[%d] = \"%s\"\n", threadNum, srcStr[threadNum]);
 
         // 指定したアルゴリズムにてハッシュ値を生成する。
         if (bytesEquals(targetHashedBytes, compute_hash_common(Algorithm_Index, srcStr[threadNum]))) {
@@ -475,16 +439,6 @@ bool get_NextClearText_Group_All_level2(int threadNum, int target_strLength)
         chr[threadNum][target_strLength] = targetChars[index];
         srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength];
 
-        // デバッグ用出力
-        if (output_clearTextList) {
-            clearTextList[clearTextListIndex] = (char *)malloc(sizeof(char)*(target_strLength + 1));
-            sprintf(clearTextList[clearTextListIndex], "\"%s\"\r\n", srcStr[threadNum]);
-            clearTextListIndex++;
-        }
-
-        // for debug.
-    //  printf("srcStr[%d] = \"%s\"\n", threadNum, srcStr[threadNum]);
-
         // 指定したアルゴリズムにてハッシュ値を生成する。
         if (bytesEquals(targetHashedBytes, compute_hash_common(Algorithm_Index, srcStr[threadNum]))) {
             return true;
@@ -501,117 +455,6 @@ bool get_NextClearText_Group_All_level2(int threadNum, int target_strLength)
     }
 
     return false;
-}
-
-//-------------------------------------------------------------------//
-// 生成した元の文字列候補を表示する。
-//-------------------------------------------------------------------//
-void display_clearText()
-{
-    char *clearText[sizeof(srcStr)];
-
-    for (int thread = 0; thread < sizeof(srcStr); thread++) {
-        // スレッドごとに途中経過文字列を取得
-
-        clearText[thread] = "";
-        for (int i = 0; i < sizeof(srcStr[thread]); i++) {
-            clearText[thread][i] = srcStr[thread][i];
-        }
-
-        if (clearText[thread][0] != '\0') {
-            // 出力先テキストボックスに出力
-            printf("スレッド%d: (起動待ち)", thread);
-        } else if (resultStrArray[thread][0] == '\0') {
-            // 出力先テキストボックスに出力
-            printf("スレッド%d: (処理終了)", thread);
-        } else {
-            int threadCount = sizeof(srcStr);
-            //double progress = ((double)(srcStr[thread][0] - targetChars[chrStart[selectIndex][thread]]) / (double)(chrEnd[selectIndex][thread] - chrStart[selectIndex][thread])) * 100;
-            double progress = ((double)(get_index_targetChars(srcStr[thread][0]) - get_index_targetChars(targetChars[chrStart[selectIndex][thread]])) / (double)(chrEnd[selectIndex][thread] - chrStart[selectIndex][thread])) * 100;
-
-            // 出力先テキストボックスに出力
-            printf("スレッド%d  (%s \% 終了) : \n", thread, clearText[thread]);
-        }
-
-        if (thread % 2 == 0) {
-            printf("\t");
-        } else {
-            printf("\n");
-        }
-    }
-}
-
-//-------------------------------------------------------------------//
-// 平文生成作業用配列を解放
-//-------------------------------------------------------------------//
-void free_arrays()
-{
-    free_clearTextList();
-//  free_resultStrArray();
-    free_chr_StartEnd();
-    free_chr();
-    free_srcStr();
-}
-
-//-------------------------------------------------------------------//
-// resultStrArray()を解放
-//-------------------------------------------------------------------//
-void free_resultStrArray()
-{
-    for (int i = thread_MAX - 1; i >= 0; i--) {
-        if (resultStrArray[i] != NULL && resultStrArray[i] != 0) {
-        //  printf("execute free(resultStrArray[%d])...%lx\n", i, resultStrArray[i]);
-            free(resultStrArray[i]);
-        }
-    }
-    free(resultStrArray);
-}
-
-//-------------------------------------------------------------------//
-// resultStrArray()のアドレスを出力
-//-------------------------------------------------------------------//
-void disp_resultStrArray()
-{
-    for (int i = 0; i < thread_MAX; i++) {
-        printf("disp resultStrArray[%d])...%lx\n", i, resultStrArray[i]);
-    }
-}
-
-//-------------------------------------------------------------------//
-// clearTextList()を解放
-//-------------------------------------------------------------------//
-void free_clearTextList()
-{
-    /*
-    for (int i = clearTextListIndex - 1; i >= 0; i--) {
-        free(clearTextList[i]);
-    }
-    */
-    free(clearTextList);
-}
-
-//-------------------------------------------------------------------//
-// chr()を解放
-//-------------------------------------------------------------------//
-void free_chr()
-{
-    for (int i = thread_MAX - 1; i >= 0; i--) {
-    //  printf("execute free(chr[%d])...%x\n", i, chr[i]);
-        free(chr[i]);
-    }
-    free(chr);
-}
-
-//-------------------------------------------------------------------//
-// srcStr()を解放
-//-------------------------------------------------------------------//
-void free_srcStr()
-{
-    for (int i = thread_MAX - 1; i >= 0; i--) {
-    //  printf("execute free(srcStr[%d])...%x\n", i, srcStr[i]);
-        free(srcStr[i]);
-    }
-    free(srcStr);
 }
 
 //-------------------------------------------------------------------//
@@ -664,4 +507,147 @@ bool bytesEquals(char *arr1, char *arr2)
     }
 
     return true;
+}
+
+//-------------------------------------------------------------------//
+// 平文生成作業用配列を解放
+//-------------------------------------------------------------------//
+void disp_arrays()
+{
+    printf("disp resultTable    ... %lx\n", resultTable);
+    disp_chr_StartEnd();
+    disp_chr();
+    disp_srcStr();
+}
+
+//-----------------------------------------------------------------------------//
+// 検索範囲配列のアドレスを出力
+//-----------------------------------------------------------------------------//
+void disp_chr_StartEnd()
+{
+    for (int i = 0; i < 5; i++) {
+        printf("disp chrStart[%d])   ... %lx\n", i, chrStart[i]);
+        printf("disp chrEnd[%d])     ... %lx\n",   i, chrEnd[i]);
+    }
+    printf("disp chrStar        ... %lx\n", chrStart);
+    printf("disp chrEnd         ... %lx\n",  chrEnd);
+}
+
+//-------------------------------------------------------------------//
+// chr()のアドレスを出力
+//-------------------------------------------------------------------//
+void disp_chr()
+{
+    for (int i = 0; i < thread_MAX; i++) {
+        printf("disp chr[%d]         ... %lx\n", i, chr[i]);
+    }
+    printf("disp chr            ... %lx\n", chr);
+}
+
+//-------------------------------------------------------------------//
+// disp_srcStr()のアドレスを出力
+//-------------------------------------------------------------------//
+void disp_srcStr()
+{
+    for (int i = 0; i < thread_MAX; i++) {
+        printf("disp srcStr[%d]      ... %lx\n", i, srcStr[i]);
+    }
+    printf("disp srcStr         ... %lx\n", srcStr);
+}
+
+//-------------------------------------------------------------------//
+// 平文生成作業用配列を解放
+//-------------------------------------------------------------------//
+void free_arrays()
+{
+//  free_clearTextList();
+    free(resultTable);
+    free_chr_StartEnd();
+    free_chr();
+    free_srcStr();
+}
+
+//-------------------------------------------------------------------//
+// clearTextList()を解放
+//-------------------------------------------------------------------//
+void free_clearTextList()
+{
+    for (int i = clearTextListIndex - 1; i >= 0; i--) {
+        if (clearTextList[i] != NULL) {
+            if (ENABLE_DEBUG)
+                printf("execute free(clearTextList[%d]) ... %lx\n", i, clearTextList[i]);
+            free(clearTextList[i]);
+        }
+    }
+    free(clearTextList);
+}
+
+//-------------------------------------------------------------------//
+// chr()を解放
+//-------------------------------------------------------------------//
+void free_chr()
+{
+    for (int i = thread_MAX - 1; i >= 0; i--) {
+        if (chr[i] != NULL) {
+            if (ENABLE_DEBUG)
+                printf("execute free(chr[%d])      ... %lx\n", i, chr[i]);
+            free(chr[i]);
+        }
+    }
+
+    if (ENABLE_DEBUG)
+        printf("execute free(chr)         ... %lx\n", chr);
+    free(chr);
+}
+
+//-------------------------------------------------------------------//
+// srcStr()を解放
+//-------------------------------------------------------------------//
+void free_srcStr()
+{
+    for (int i = thread_MAX - 1; i >= 0; i--) {
+        if (chr[i] != NULL) {
+            if (ENABLE_DEBUG)
+                printf("execute free(srcStr[%d])   ... %lx\n", i, srcStr[i]);
+            free(srcStr[i]);
+        }
+    }
+
+    if (ENABLE_DEBUG)
+        printf("execute free(srcStr)      ... %lx\n", srcStr);
+    free(srcStr);
+}
+
+//-----------------------------------------------------------------------------//
+// 検索範囲配列の解放
+//-----------------------------------------------------------------------------//
+void free_chr_StartEnd()
+{
+    for (int i = 0; i < 5; i++) {
+        if (ENABLE_DEBUG)
+            printf("execute free(chrEnd[%d])   ... %lx\n", i, chrEnd[i]);
+        free(chrEnd[i]);
+
+        if (ENABLE_DEBUG)
+            printf("execute free(chrStart[%d]) ... %lx\n", i, chrStart[i]);
+        free(chrStart[i]);
+    }
+
+    if (ENABLE_DEBUG)
+        printf("execute free(chrEnd)      ... %lx\n", chrEnd);
+    free(chrEnd);
+
+    if (ENABLE_DEBUG)
+        printf("execute free(chrStart)    ... %lx\n", chrStart);
+    free(chrStart);
+}
+
+//-----------------------------------------------------------------------------//
+// 検索対象文字配列の開放
+//-----------------------------------------------------------------------------//
+void free_targetChars()
+{
+    if (ENABLE_DEBUG)
+        printf("execute free(targetChars) ... %lx\n", targetChars);
+    free(targetChars);
 }
