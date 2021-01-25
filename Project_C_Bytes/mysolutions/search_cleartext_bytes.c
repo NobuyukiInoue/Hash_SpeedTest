@@ -390,7 +390,7 @@ void *bruteforce_hashing(void *args)
 bool get_NextClearText_Group_All(int threadNum, int target_strLength)
 {
     // 文字列の長さの上限を超えた場合は中止する。
-    int temp = strlen(chr[threadNum]);
+//  int temp = strlen(chr[threadNum]);
     if (target_strLength > strlen(chr[threadNum]) - 1) {
         return false;
     }
@@ -398,18 +398,22 @@ bool get_NextClearText_Group_All(int threadNum, int target_strLength)
     strcpy(srcStr[threadNum], chr[threadNum]);
 
     // まずは文字列長target_strLengthの候補をチェック
-    for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++) {
+    int index;
+    for (index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++) {
         chr[threadNum][target_strLength] = targetChars[index];
         srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength];
 
         // 指定したアルゴリズムにてハッシュ値を生成する。
-        if (bytesEquals(targetHashedBytes, compute_hash_common(Algorithm_Index, srcStr[threadNum]))) {
+        unsigned char *digest = compute_hash_common(Algorithm_Index, srcStr[threadNum]);
+        if (bytesEquals(targetHashedBytes, digest)) {
+            free(digest);
             return true;
         }
+        free(digest);
     }
 
     // 文字列長target_strLength + 1の候補をチェック
-    for (int index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++) {
+    for (index = chrStart[selectIndex][threadNum]; index < chrEnd[selectIndex][threadNum]; index++) {
         chr[threadNum][target_strLength] = targetChars[index];
 
         if (get_NextClearText_Group_All_level2(threadNum, target_strLength + 1)) {
@@ -427,7 +431,7 @@ bool get_NextClearText_Group_All(int threadNum, int target_strLength)
 bool get_NextClearText_Group_All_level2(int threadNum, int target_strLength)
 {
     // 文字列の長さの上限を超えた場合は中止する。
-    int temp = strlen(chr[threadNum]);
+//  int temp = strlen(chr[threadNum]);
     if (target_strLength > strlen(chr[threadNum]) - 1) {
         return false;
     }
@@ -435,18 +439,22 @@ bool get_NextClearText_Group_All_level2(int threadNum, int target_strLength)
     strcpy(srcStr[threadNum], chr[threadNum]);
 
     // まずは文字列長target_strLengthの候補をチェック
-    for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++) {
+    int index;
+    for (index = chrStart[0][0]; index < chrEnd[0][0]; index++) {
         chr[threadNum][target_strLength] = targetChars[index];
         srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength];
 
         // 指定したアルゴリズムにてハッシュ値を生成する。
-        if (bytesEquals(targetHashedBytes, compute_hash_common(Algorithm_Index, srcStr[threadNum]))) {
+        unsigned char *digest = compute_hash_common(Algorithm_Index, srcStr[threadNum]);
+        if (bytesEquals(targetHashedBytes, digest)) {
+            free(digest);
             return true;
         }
+        free(digest);
     }
 
     // 文字列長target_strLength + 1の候補をチェック
-    for (int index = chrStart[0][0]; index < chrEnd[0][0]; index++) {
+    for (index = chrStart[0][0]; index < chrEnd[0][0]; index++) {
         chr[threadNum][target_strLength] = targetChars[index];
 
         if (get_NextClearText_Group_All_level2(threadNum, target_strLength + 1)) {

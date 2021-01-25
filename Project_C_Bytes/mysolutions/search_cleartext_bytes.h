@@ -28,7 +28,7 @@ bool bytesEquals(char *arr1, char *arr2);
 void disp_arrays();
 void disp_chr_StartEnd();
 void disp_chr();
-void disp_src();
+void disp_srcStr();
 
 void free_arrays();
 void free_chr();
