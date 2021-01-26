@@ -39,6 +39,7 @@ int solution_start(char *openFileName, int threadCount, int searchMaxLength, int
 
     time_t timer;
     struct tm *local;
+
     char *algorithm = flds[0];
     char *target_hashed_text = flds[1];
 
@@ -70,6 +71,9 @@ int solution_start(char *openFileName, int threadCount, int searchMaxLength, int
     // 総当たり検索実行
     search(target_hashed_text, algorithm, threadCount, searchMaxLength, searchMode, enableMultiThread, enableDebug);
 
+    free(flds[1]);
+    free(flds[0]);
+
     clock_t time_end = clock();
 
     // result print.
@@ -91,22 +95,28 @@ void search(char *target_hashed_text, char *algorithm, int threadMax, int ClearT
 
     ml_replace(algorithm, "-", "");
     char *algorithm_upper = ml_toUpper(algorithm);
-    int Algorithm_Index;
+    int algorithm_Index;
 
     if (strcmp(algorithm_upper, "MD5") == 0)
-        Algorithm_Index = 0;
+        algorithm_Index = 0;
     else if (strcmp(algorithm_upper, "SHA1") == 0)
-        Algorithm_Index = 1;
+        algorithm_Index = 1;
     else if (strcmp(algorithm_upper, "SHA256") == 0)
-        Algorithm_Index = 2;
+        algorithm_Index = 2;
     else if (strcmp(algorithm_upper, "SHA386") == 0)
-        Algorithm_Index = 3;
+        algorithm_Index = 3;
     else if (strcmp(algorithm_upper, "SHA512") == 0)
-        Algorithm_Index = 4;
+        algorithm_Index = 4;
     else if (strcmp(algorithm_upper, "RIPED160") == 0)
-        Algorithm_Index = 5;
+        algorithm_Index = 5;
     else
-        Algorithm_Index = 2;  // default .. "SHA256"
+        algorithm_Index = 2;  // default .. "SHA256"
+
+    if (enableDebug)
+        printf("algorithm_upper = %s, algorithm_Index = %d\n", algorithm_upper, algorithm_Index);
+
+    // char algorithm_upper[]を開放
+    free(algorithm_upper);
 
     // 現在の時刻を取得
     clock_t time_start = clock();
@@ -118,7 +128,7 @@ void search(char *target_hashed_text, char *algorithm, int threadMax, int ClearT
     for (int target_strLength = 1; target_strLength <= ClearTextMaxLength; target_strLength++) {
 
         // 各種変数のセット
-        init_searchClearTextBytes(Algorithm_Index, target_hashed_text, target_strLength, threadMax, 0, enableMuiltiThread, enableDebug);
+        init_searchClearTextBytes(algorithm_Index, target_hashed_text, target_strLength, threadMax, 0, enableMuiltiThread, enableDebug);
 
         // 文字数iでの総当たり平文検索開始時刻を保存
         clock_t startTime = clock();
@@ -134,17 +144,19 @@ void search(char *target_hashed_text, char *algorithm, int threadMax, int ClearT
         //---------------------------------------------------------------------//
         // 文字数target_strLengthでの総当たり平文検索終了
         //---------------------------------------------------------------------//
-        double totalSeconds = (double)(endTime - startTime)/CLOCKS_PER_SEC; 
+        double totalSeconds = (double)(endTime - startTime)/CLOCKS_PER_SEC;
+        char *tm = timeFormatter(totalSeconds);
         if (answerStr != NULL) {
             printf("元の文字列が見つかりました！\n"
                    "\n"
                    "結果 = %s\n"
                    "\n"
-                   "解析時間 = %s ( %f [s] )\n", answerStr, timeFormatter(totalSeconds), totalSeconds);
+                   "解析時間 = %s ( %f [s] )\n", answerStr, tm, totalSeconds);
             break;
         } else {
-            printf("%s ... %d文字の組み合わせ照合終了\n", timeFormatter(totalSeconds), target_strLength);
+            printf("%s ... %d文字の組み合わせ照合終了\n", tm, target_strLength);
         }
+        free(tm);
     }
 
     if (answerStr == NULL) {

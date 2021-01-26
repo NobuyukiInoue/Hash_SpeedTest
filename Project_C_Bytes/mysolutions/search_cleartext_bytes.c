@@ -38,7 +38,7 @@ int **chrStart;
 int **chrEnd;
 
 /// 選択したアルゴリズムのインデックス番号
-int Algorithm_Index;
+int algorithmIndex;
 
 //-----------------------------------------------------------------------------//
 // モジュール内変数初期化処理
@@ -65,7 +65,9 @@ void init_searchClearTextBytes(int alg_index, char *targetStr, int current_strLe
     }
 
     // 選択したアルゴリズムのインデックス番号
-    Algorithm_Index = alg_index;
+    if (ENABLE_DEBUG)
+        printf("algo_index = %d\n", alg_index);
+    algorithmIndex = alg_index;
 
     // 選択したスレッド数のインデックス番号の指定（配列の選択)
     switch (thread_MAX) {
@@ -108,15 +110,12 @@ void init_searchClearTextBytes(int alg_index, char *targetStr, int current_strLe
 //-----------------------------------------------------------------------------//
 void init_targetChars(int mode)
 {
-    // 検索範囲配列の初期化
-    init_chr_StartEnd();
-
+    int i = 0;
     switch (mode) {
         case 0: {
             // 英数文字および記号が対象のとき
-            targetChars = (char *)malloc(sizeof(char)*(0x7f - 0x20));
+            targetChars = (char *)malloc(sizeof(char)*(0x7f - 0x20 + 1));
 
-            int i = 0;
             for (char num = 0x20; num < 0x7f; num++, i++) {
                 targetChars[i] = num;
             }
@@ -126,7 +125,6 @@ void init_targetChars(int mode)
             // 英数文字のみが対象のとき
             targetChars = (char *)malloc(sizeof(char)*(('9' - '0') + 1 + ('Z' - 'A') + 1 + ('z' - 'a') + 1));
 
-            int i = 0;
             for (char num = '0'; num <= '9'; num++, i++) {
                 targetChars[i] = num;
             }
@@ -142,8 +140,17 @@ void init_targetChars(int mode)
         }
     }
 
+    targetChars[i] = '\0';
+
+    // 検索範囲配列の生成
+    init_chr_StartEnd();
+
     // 検索範囲配列の初期化
     set_chr_StartEnd();
+
+    // デバッグ用出力
+    if (ENABLE_DEBUG)
+        display_chrStartEnd(thread_MAX);
 }
 
 //-----------------------------------------------------------------------------//
@@ -258,19 +265,31 @@ void set_chr_StartEnd()
 //-------------------------------------------------------------------//
 // 開始位置、終了位置の確認
 //-------------------------------------------------------------------//
-void display_chrStartEnd()
+void display_chrStartEnd(int threadNum)
 {
     printf("strlen(targetChars) = %lu\n", strlen(targetChars));
 
-    for (int rows = 0; rows < sizeof(chrStart); rows++) {
-        for (int th = 0; th < sizeof(chrStart[rows]); th++) {
-            printf("chrStart[%d][%d] = %c\n", rows, th, chrStart[rows][th]);
-            printf("chrEnd[%d][%d] = %c\n", rows, th, chrEnd[rows][th]);
-        }
+    int rows;
+    switch (threadNum) {
+    case 1:
+        rows = 0;
+    case 2:
+        rows = 1;
+    case 4:
+        rows = 2;
+    case 8:
+        rows = 3;
+    case 16:
+        rows = 4;
+    }
+
+    for (int th = 0; th < threadNum; th++) {
+        printf("chrStart[%d][%d] = %d\n", rows, th, chrStart[rows][th]);
+        printf("chrEnd[%d][%d]   = %d\n", rows, th, chrEnd[rows][th]);
     }
 
     for (int i = 0; i < strlen(targetChars); i++) {
-        printf("targetChars[%d] = %c", i, targetChars[i]);
+        printf("targetChars[%d] = %c\n", i, targetChars[i]);
     }
 }
 
@@ -282,7 +301,7 @@ char *get_clearText(int threadMax, int target_strLength)
     //-------------------------------------------------------------------------//
     // 平文が""かどうかを判定する。
     //-------------------------------------------------------------------------//
-    if (bytesEquals(targetHashedBytes, compute_hash_common(Algorithm_Index, ""))) {
+    if (bytesEquals(targetHashedBytes, compute_hash_common(algorithmIndex, ""))) {
         return ("");
     }
 
@@ -293,7 +312,9 @@ char *get_clearText(int threadMax, int target_strLength)
     // 平文が１文字以上の文字列の場合
     //-------------------------------------------------------------------------//
     resultTable = (bool *)malloc(sizeof(bool)*threadMax);
-    for (int i = 0; i < threadMax; i++) resultTable[i] = false;
+    for (int i = 0; i < threadMax; i++) {
+        resultTable[i] = false;
+    }
 
     if (useMultiThread) {
         //---------------------------------------------------------------------//
@@ -304,12 +325,15 @@ char *get_clearText(int threadMax, int target_strLength)
 
         for (int threadNum = 0; threadNum < threadMax; threadNum++) {
             th_data[threadNum].threadNum = threadNum;
+            th_data[threadNum].targetLength = target_strLength;
 
             // スレッドを生成し、総当たりハッシュ処理を実行
             pthread_create(&th_table[threadNum], NULL, bruteforce_hashing, &th_data[threadNum]);
 
             // スレッドの終了を待機
             pthread_join(th_table[threadNum], NULL);
+            if (ENABLE_DEBUG)
+                printf("thread %d is finished.\n", threadNum);
         }
     } else {
         //---------------------------------------------------------------------//
@@ -319,9 +343,13 @@ char *get_clearText(int threadMax, int target_strLength)
 
         for (int threadNum = 0; threadNum < threadMax; threadNum++) {
             th_data[threadNum].threadNum = threadNum;
+            th_data[threadNum].targetLength = target_strLength;
 
             // 総当たりハッシュ処理を実行
             bruteforce_hashing(&th_data[threadNum]);
+
+            if (ENABLE_DEBUG)
+                printf("threadArray %d is finished.\n", threadNum);
         }
     }
 
@@ -369,17 +397,16 @@ char *get_clearText(int threadMax, int target_strLength)
 void *bruteforce_hashing(void *args)
 {
     struct func_args *th_data = (struct func_args *)args;
-    int threadNum = th_data->threadNum;
 
     if (ENABLE_DEBUG)
-        printf("thread %d is started.\n", threadNum);
+        printf("len = %d, thread %d is started.\n", th_data->targetLength, th_data->threadNum);
 
     // 指定したアルゴリズムにてハッシュ値を生成する。
-    if (get_NextClearText_Group_All(threadNum, 0) == true) {
+    if (get_NextClearText_Group_All(th_data->threadNum, 0) == true) {
         //-----------------------------------------------------------//
         // 同じハッシュ値が生成できる元の文字列が見つかった場合
         //-----------------------------------------------------------//
-        resultTable[threadNum] = true;
+        resultTable[th_data->threadNum] = true;
     }
 }
 
@@ -390,7 +417,6 @@ void *bruteforce_hashing(void *args)
 bool get_NextClearText_Group_All(int threadNum, int target_strLength)
 {
     // 文字列の長さの上限を超えた場合は中止する。
-//  int temp = strlen(chr[threadNum]);
     if (target_strLength > strlen(chr[threadNum]) - 1) {
         return false;
     }
@@ -404,11 +430,15 @@ bool get_NextClearText_Group_All(int threadNum, int target_strLength)
         srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength];
 
         // 指定したアルゴリズムにてハッシュ値を生成する。
-        unsigned char *digest = compute_hash_common(Algorithm_Index, srcStr[threadNum]);
+        unsigned char *digest = compute_hash_common(algorithmIndex, srcStr[threadNum]);
         if (bytesEquals(targetHashedBytes, digest)) {
+            if (ENABLE_DEBUG)
+                printf("Thread number where the answer was found ... %d\n", threadNum);
             free(digest);
+
             return true;
         }
+
         free(digest);
     }
 
@@ -431,7 +461,6 @@ bool get_NextClearText_Group_All(int threadNum, int target_strLength)
 bool get_NextClearText_Group_All_level2(int threadNum, int target_strLength)
 {
     // 文字列の長さの上限を超えた場合は中止する。
-//  int temp = strlen(chr[threadNum]);
     if (target_strLength > strlen(chr[threadNum]) - 1) {
         return false;
     }
@@ -445,11 +474,15 @@ bool get_NextClearText_Group_All_level2(int threadNum, int target_strLength)
         srcStr[threadNum][target_strLength] = chr[threadNum][target_strLength];
 
         // 指定したアルゴリズムにてハッシュ値を生成する。
-        unsigned char *digest = compute_hash_common(Algorithm_Index, srcStr[threadNum]);
+        unsigned char *digest = compute_hash_common(algorithmIndex, srcStr[threadNum]);
         if (bytesEquals(targetHashedBytes, digest)) {
+            if (ENABLE_DEBUG)
+                printf("Thread number where the answer was found ... %d\n", threadNum);
             free(digest);
+
             return true;
         }
+
         free(digest);
     }
 
@@ -569,6 +602,7 @@ void disp_srcStr()
 void free_arrays()
 {
 //  free_clearTextList();
+    free(targetHashedBytes);
     free(resultTable);
     free_chr_StartEnd();
     free_chr();

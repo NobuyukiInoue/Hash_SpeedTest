@@ -9,13 +9,14 @@
 
 struct func_args {
     int threadNum;
+    int targetLength;
 };
 
 void init_searchClearTextBytes(int alg_index, char *targetStr, int strLen, int threadMax, int mode, bool use_multiThread, bool use_debug);
 void init_targetChars(int mode);
 void init_chr_StartEnd();
 void set_chr_StartEnd();
-void display_chrStartEnd();
+void display_chrStartEnd(int threadNum);
 char *get_clearText(int threadMax, int target_strLength);
 void *bruteforce_hashing(void *args);
 bool get_NextClearText_Group_All(int threadNum, int target_strLength);

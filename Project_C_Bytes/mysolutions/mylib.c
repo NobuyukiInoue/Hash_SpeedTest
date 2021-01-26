@@ -192,14 +192,14 @@ void ml_print_pchar_array(char* var_name, char *strs[], int length)
 
 char *ml_toUpper(char* srcStr)
 {
-    char *workStr = (char *)malloc(sizeof(char)*strlen(srcStr));
+    char *workStr = (char *)malloc(sizeof(char)*(strlen(srcStr) + 1));
     if (workStr == NULL) {
         fprintf(stderr, "malloc() error.\n");
         return NULL;
     }
 
     int diff = 'a' - 'A';
-    for (int i = 0; i < strlen(srcStr); i++) {
+    for (int i = 0; i < strlen(srcStr) + 1; i++) {
         if ('a' <= srcStr[i] && srcStr[i] <= 'z') {
             workStr[i] = srcStr[i] - diff;
         } else {
