@@ -32,13 +32,13 @@ $ make
 #### Linux
 
 ```
-$ ./main_for_linux ../testdata/data_~~~.txt 4
+$ ./main_for_linux ../testdata/data_sha256_~~~~.txt 4
 ```
 
 #### macOS
 
 ```
-$ ./main_for_mac ../testdata/data_~~~.txt 4
+$ ./main_for_mac ../testdata/data_sha256_~~~~.txt 4
 ```
 
 
@@ -53,7 +53,7 @@ $ cd /Project_Golang_Bytes
 ### Run(Golang)
 
 ```
-$ go run main.go ../testdata/data_~~~.txt 4
+$ go run main.go ../testdata/data_sha256_~~~~.txt 4
 ```
 
 
@@ -72,7 +72,7 @@ $ cd Project_CS_DOTNET2.0_Bytes_LINQ
 ### Run(dotnet) [Windows/macOS/Linux]
 
 ```
-> dotnet run -c Release ../testdata/data_~~~.txt 4
+> dotnet run -c Release ../testdata/data_sha256_~~~~.txt 4
 ```
 
 ## Project for Java
@@ -104,7 +104,7 @@ $ make all
 ### Run(Java)
 
 ```
-$ java Main ../testdata/data_~~~.txt
+$ java Main ../testdata/data_sha256_~~~~.txt
 ```
 
 ## Project for Python3
@@ -117,5 +117,5 @@ $ cd Project_Python3_Bytes
 ### Run(Python3)
 
 ```
-$ python Main.py ../testdata/data_~~~.txt 4
+$ python Main.py ../testdata/data_sha256_~~~~.txt 4
 ```
