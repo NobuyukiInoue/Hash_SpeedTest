@@ -66,7 +66,8 @@ int solution_start(char *openFileName, int threadCount, int searchMaxLength, int
     printf("search max length  : %d\n", searchMaxLength);
     printf("=====================================================================================\n");
 
-    clock_t time_start = clock();
+    struct timespec time_start, time_end;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &time_start);
 
     // 総当たり検索実行
     search(target_hashed_text, algorithm, threadCount, searchMaxLength, searchMode, enableMultiThread, enableDebug);
@@ -74,10 +75,14 @@ int solution_start(char *openFileName, int threadCount, int searchMaxLength, int
     free(flds[1]);
     free(flds[0]);
 
-    clock_t time_end = clock();
+    clock_gettime(CLOCK_MONOTONIC_RAW, &time_end);
 
-    // result print.
-    printf("Total Execute time ... %.0f ms\n\n", 1000*(double)(time_end - time_start)/CLOCKS_PER_SEC);
+    // 経過時間の出力
+    double time_start_dbl = (double)time_start.tv_sec + (double)time_start.tv_nsec/(10e9);
+    double time_end_dbl   = (double)time_end.tv_sec   + (double)time_end.tv_nsec/(10e9);
+    double totalSeconds = time_end_dbl - time_start_dbl;
+
+    printf("Total Execute time ... %.0f ms\n\n", totalSeconds*1000);
 
     return 0;
 }
@@ -118,33 +123,31 @@ void search(char *target_hashed_text, char *algorithm, int threadMax, int ClearT
     // char algorithm_upper[]を開放
     free(algorithm_upper);
 
-    // 現在の時刻を取得
-    clock_t time_start = clock();
-
-    // 結果の初期化
-    char* answerStr = NULL;
-
     // １文字から指定した文字列長まで検索する。
     for (int target_strLength = 1; target_strLength <= ClearTextMaxLength; target_strLength++) {
+        struct timespec time_sectionStart, time_sectionEnd;
 
         // 各種変数のセット
         init_searchClearTextBytes(algorithm_Index, target_hashed_text, target_strLength, threadMax, 0, enableMuiltiThread, enableDebug);
 
         // 文字数iでの総当たり平文検索開始時刻を保存
-        clock_t startTime = clock();
+        clock_gettime(CLOCK_MONOTONIC_RAW, &time_sectionStart);
 
         //---------------------------------------------------------------------//
-        // 文字数target_strLengthでの総当たり平文検索開始
+        // 文字数target_strLengthでの総当たり平文検索を実行し、結果を取得
         //---------------------------------------------------------------------//
-        answerStr = get_clearText(threadMax, target_strLength);
+        char *answerStr = get_clearText(threadMax, target_strLength);
 
         // 総当たり平文検索終了時刻との差を取得
-        clock_t endTime = clock();
+        clock_gettime(CLOCK_MONOTONIC_RAW, &time_sectionEnd);
 
         //---------------------------------------------------------------------//
         // 文字数target_strLengthでの総当たり平文検索終了
         //---------------------------------------------------------------------//
-        double totalSeconds = (double)(endTime - startTime)/CLOCKS_PER_SEC;
+        double time_sectionStart_dbl = (double)time_sectionStart.tv_sec + (double)time_sectionStart.tv_nsec/(10e9);
+        double time_sectionEnd_dbl   = (double)time_sectionEnd.tv_sec   + (double)time_sectionEnd.tv_nsec/(10e9);
+        double totalSeconds = time_sectionEnd_dbl - time_sectionStart_dbl;
+
         char *tm = timeFormatter(totalSeconds);
         if (answerStr != NULL) {
             printf("元の文字列が見つかりました！\n"
@@ -152,16 +155,15 @@ void search(char *target_hashed_text, char *algorithm, int threadMax, int ClearT
                    "結果 = %s\n"
                    "\n"
                    "解析時間 = %s ( %f [s] )\n", answerStr, tm, totalSeconds);
+
+            /* スレッド未終了時の状態で解放するとSegmentation faultが発生するので、そのまま終了処理へ */
+            // search_cleartext_bytes.cの作業用配列を解放
+         // free_arrays();
             break;
         } else {
             printf("%s ... %d文字の組み合わせ照合終了\n", tm, target_strLength);
         }
         free(tm);
-    }
-
-    if (answerStr == NULL) {
-        // 見つからなかった場合
-        printf("見つかりませんでした。\n");
     }
 }
 

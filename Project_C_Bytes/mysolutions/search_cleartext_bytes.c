@@ -11,10 +11,13 @@ char **clearTextList;
 int clearTextListIndex;
 
 /// マルチスレッド処理の可否
-bool useMultiThread;
+bool ENABLE_MULTI_THREAD;
 
-/// 各スレッド検索結果格納用配列（配列）
+/// 各スレッド検索結果格納用配列
 bool *resultTable;
+
+/// 各スレッド終了判定用配列
+bool *threadFinished;
 
 /// 検索対象のハッシュ後文字列
 char *targetHashedBytes;
@@ -47,7 +50,7 @@ void init_searchClearTextBytes(int alg_index, char *targetStr, int current_strLe
 {
     thread_MAX = threadMax;
     ENABLE_DEBUG = use_debug;
-    useMultiThread = use_multiThread;
+    ENABLE_MULTI_THREAD = use_multiThread;
 
     srcStr = (char **)malloc(sizeof(char *)*thread_MAX);
     chr = (char **)malloc(sizeof(char *)*thread_MAX);
@@ -311,18 +314,20 @@ char *get_clearText(int threadMax, int target_strLength)
     //-------------------------------------------------------------------------//
     // 平文が１文字以上の文字列の場合
     //-------------------------------------------------------------------------//
-    resultTable = (bool *)malloc(sizeof(bool)*threadMax);
+    resultTable    = (bool *)malloc(sizeof(bool)*threadMax);
+    threadFinished = (bool *)malloc(sizeof(bool)*threadMax);
     for (int i = 0; i < threadMax; i++) {
         resultTable[i] = false;
+        threadFinished[i] = false;
     }
 
-    if (useMultiThread) {
+    pthread_t th_table[threadMax];
+    struct func_args th_data[threadMax];
+
+    if (ENABLE_MULTI_THREAD) {
         //---------------------------------------------------------------------//
         // マルチスレッド処理
         //---------------------------------------------------------------------//
-        pthread_t th_table[threadMax];
-        struct func_args th_data[threadMax];
-
         for (int threadNum = 0; threadNum < threadMax; threadNum++) {
             th_data[threadNum].threadNum = threadNum;
             th_data[threadNum].targetLength = target_strLength;
@@ -330,17 +335,18 @@ char *get_clearText(int threadMax, int target_strLength)
             // スレッドを生成し、総当たりハッシュ処理を実行
             pthread_create(&th_table[threadNum], NULL, bruteforce_hashing, &th_data[threadNum]);
 
-            // スレッドの終了を待機
-            pthread_join(th_table[threadNum], NULL);
-            if (ENABLE_DEBUG)
-                printf("thread %d is finished.\n", threadNum);
+            // スレッドの切り離し（スレッドの終了を待たない）
+            /*
+            if (pthread_detach(th_table[threadNum]) != 0) {
+                printf("len = %d, thread %d pthread_detach() error.\n", target_strLength, threadNum);
+                exit(1);
+            }
+            */
         }
     } else {
         //---------------------------------------------------------------------//
         // 直列実行
         //---------------------------------------------------------------------//
-        struct func_args th_data[threadMax];
-
         for (int threadNum = 0; threadNum < threadMax; threadNum++) {
             th_data[threadNum].threadNum = threadNum;
             th_data[threadNum].targetLength = target_strLength;
@@ -359,25 +365,18 @@ char *get_clearText(int threadMax, int target_strLength)
     char *answerStr = NULL;
     int resultCount = 0;
 
-    while (answerStr == NULL) {
+    while (resultCount < threadMax && answerStr == NULL) {
         resultCount = 0;
-
         for (int threadNum = 0; threadNum < threadMax; threadNum++) {
             if (resultTable[threadNum]) {
                 // いずれかのスレッドが文字列を返してきた場合（見つかった場合）
                 answerStr = (char *)malloc(strlen(srcStr[threadNum]) + 1);
                 strcpy(answerStr, srcStr[threadNum]);
                 break;
-
-            } else {
+            }
+            if (threadFinished[threadNum]) {
                 resultCount++;
             }
-        }
-
-        if (resultCount >= threadMax) {
-            if (ENABLE_DEBUG)
-                printf("No Answer\n");
-            break;
         }
     }
 
@@ -385,8 +384,14 @@ char *get_clearText(int threadMax, int target_strLength)
     if (ENABLE_DEBUG)
         disp_arrays();
 
-    // 作業用配列を解放
-    free_arrays();
+    if (answerStr == NULL) {
+        // 作業用配列を解放
+        free_arrays();
+
+        if (ENABLE_DEBUG)
+            printf("No Answer\n");
+        return NULL;
+    }
 
     return answerStr;
 }
@@ -398,8 +403,18 @@ void *bruteforce_hashing(void *args)
 {
     struct func_args *th_data = (struct func_args *)args;
 
-    if (ENABLE_DEBUG)
-        printf("len = %d, thread %d is started.\n", th_data->targetLength, th_data->threadNum);
+    if (ENABLE_MULTI_THREAD) {
+        if (ENABLE_DEBUG)
+            printf("len = %d, thread %d is started.\n", th_data->targetLength, th_data->threadNum);
+
+        if (pthread_detach(pthread_self()) != 0) {
+            printf("len = %d, thread %d pthread_detach() error.\n", th_data->targetLength, th_data->threadNum);
+            exit(1);
+        }
+
+        if (ENABLE_DEBUG) 
+            printf("len = %d, thread %d pthread_detach().\n", th_data->targetLength, th_data->threadNum);
+    }
 
     // 指定したアルゴリズムにてハッシュ値を生成する。
     if (get_NextClearText_Group_All(th_data->threadNum, 0) == true) {
@@ -408,6 +423,12 @@ void *bruteforce_hashing(void *args)
         //-----------------------------------------------------------//
         resultTable[th_data->threadNum] = true;
     }
+
+    // スレッド終了フラグをセット
+    threadFinished[th_data->threadNum] = true;
+
+    if (ENABLE_DEBUG)
+        printf("thread %d is finished.\n", th_data->threadNum);
 }
 
 //-------------------------------------------------------------------//
