@@ -6,7 +6,7 @@ int main()
     struct timespec time_start, time_end;
     clock_gettime(CLOCK_MONOTONIC_RAW, &time_start);
 
-    // 総当たり検索実行
+    // 一定時間経過待ちのためキー入力待ち
     printf("Hit Enter Key to Continue.\n");
     getchar();
 

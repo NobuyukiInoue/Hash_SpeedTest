@@ -378,6 +378,8 @@ char *get_clearText(int threadMax, int target_strLength)
                 resultCount++;
             }
         }
+        // 0.1s待機
+        usleep(100000);
     }
 
     // 作業用配列を出力
